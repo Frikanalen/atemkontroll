@@ -1,59 +1,68 @@
-import { Context } from "koa";
-import { setProgram, getProgram, setPreview, getPreview } from "./mixEffects.js";
-import * as device from "../device/atem/mixEffects.js";
+import request from "supertest";
+import Koa from "koa";
+import Router from "koa-router";
+import { AtemMixEffectsAPI } from "./mixEffects.js";
+import { bodyParser } from "@koa/bodyparser";
+import { AtemMixEffects } from "../device/atem/__mocks__/AtemMixEffects.js";
+import { atem } from "../device/atem/connection.js";
 
-function mockContext<T>(body: T): Context & { request: { body: T } } {
-  return {
-    request: { body } as unknown as Context["request"],
-    response: { body: {} } as unknown as Context["response"],
-    throw: jest.fn(),
-  } as unknown as Context & { request: { body: T } };
-}
+jest.mock("../device/atem/AtemMixEffects");
 
-// mock out atem ME functions
-jest.mock("../device/atem/mixEffects.js", () => ({
-  setAtemMEPreview: jest.fn(),
-  setAtemMEProgram: jest.fn(),
-  getAtemMEState: jest.fn(),
-}));
+describe("mixEffects API", () => {
+  let app: Koa;
+  let router;
+  let api: AtemMixEffectsAPI;
+  let me: AtemMixEffects;
 
-beforeEach(() => {
-  // Clear all instances and calls to constructor and all methods:
-  jest.clearAllMocks();
-});
-
-test("setProgram should call changeProgramInput with input value and set response body", async () => {
-  const ctx = mockContext({ input: 5 });
-  await setProgram(ctx, jest.fn());
-  expect(device.setAtemMEProgram).toHaveBeenCalledWith(5);
-  expect(ctx.body).toEqual({ message: "ok" });
-});
-
-test("getProgram should set body to the program input from the video mixEffects", async () => {
-  const ctx = mockContext({});
-
-  (device.getAtemMEState as jest.Mock).mockResolvedValue({
-    programInput: 10,
-    previewInput: 0,
+  beforeEach(() => {
+    app = new Koa();
+    app.use(bodyParser());
+    router = new Router();
+    me = new AtemMixEffects(atem, 0);
+    api = new AtemMixEffectsAPI(me);
+    router.put("/program", api.setProgram);
+    router.get("/program", api.getProgram);
+    router.put("/preview", api.setPreview);
+    router.get("/preview", api.getPreview);
+    app.use(router.routes()).use(router.allowedMethods());
   });
 
-  await getProgram(ctx, jest.fn());
-  expect(ctx.body).toEqual({ programInput: 10 });
-});
+  test("setProgramInput", async () => {
+    const spy = jest.spyOn(me, "setProgramInput");
+    const res = await request(app.callback()).put("/program").send({ input: 1 });
 
-test("setPreview should call changePreviewInput with input value", async () => {
-  const ctx = mockContext({ input: 5 });
-  await setPreview(ctx, jest.fn());
-  expect(device.setAtemMEPreview).toHaveBeenCalledWith(5);
-});
-
-test("getPreview should set body to the preview input from the video mixEffects", async () => {
-  (device.getAtemMEState as jest.Mock).mockResolvedValue({
-    programInput: 0,
-    previewInput: 10,
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ message: "ok" });
+    expect(spy).toHaveBeenCalledWith(1);
   });
 
-  const ctx = mockContext({});
-  await getPreview(ctx);
-  expect(ctx.body).toEqual({ previewInput: 10 });
+  test("getProgramInput", async () => {
+    const spy = jest.spyOn(me, "getProgramInput");
+
+    const res = await request(app.callback()).get("/program");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ programInput: 0 });
+    expect(spy).toHaveBeenCalled();
+  });
+
+  test("setPreviewInput", async () => {
+    const spy = jest.spyOn(me, "setPreviewInput");
+
+    const res = await request(app.callback()).put("/preview").send({ input: 1 });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ message: "ok" });
+    expect(spy).toHaveBeenCalledWith(1);
+  });
+
+  test("getPreviewInput", async () => {
+    const spy = jest.spyOn(me, "getPreviewInput");
+
+    const res = await request(app.callback()).get("/preview");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ previewInput: 0 });
+    expect(spy).toHaveBeenCalled();
+  });
 });
