@@ -1,7 +1,7 @@
 import { Atem } from "atem-connection";
 import { AudioMixOption } from "atem-connection/dist/enums";
-import { MULTI_VIEWER_INPUT } from "../config.js";
-import { getLogger } from "../log.js";
+import { MULTI_VIEWER_INPUT } from "../../config.js";
+import { getLogger } from "../../log.js";
 
 const log = getLogger();
 

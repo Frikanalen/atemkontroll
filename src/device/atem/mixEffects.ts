@@ -1,5 +1,5 @@
 import { getLogger } from "../../log.js";
-import { atem } from "../../api/atem.js";
+import { atem } from "./connection.js";
 
 const log = getLogger();
 
@@ -11,16 +11,18 @@ export const getAtemMEState = async (meIdx: number = 0) => {
     return undefined;
   }
 
+  const { programInput, previewInput } = ME;
+
   return {
-    programInput: ME.programInput,
-    previewInput: ME.previewInput,
+    programInput,
+    previewInput,
   };
 };
 
-export const setAtemMEPreview = async (previewInput: number, meIdx: number = 0) => {
-  await atem.changePreviewInput(previewInput);
+export const setAtemMEPreview = async (previewInput: number, meIdx?: number) => {
+  await atem.changePreviewInput(previewInput, meIdx);
 };
 
-export const setAtemMEProgram = async (programInput: number, meIdx: number = 0) => {
-  await atem.changeProgramInput(programInput);
+export const setAtemMEProgram = async (programInput: number, meIdx?: number) => {
+  await atem.changeProgramInput(programInput, meIdx);
 };

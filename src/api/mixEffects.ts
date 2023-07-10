@@ -1,6 +1,5 @@
 import * as yup from "yup";
 import { Context, Middleware } from "koa";
-import { atem } from "./atem.js";
 import { getAtemMEState, setAtemMEPreview, setAtemMEProgram } from "../device/atem/mixEffects.js";
 
 export const SetMESchema = yup.object().shape({
