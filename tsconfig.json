@@ -1,0 +1,21 @@
+{
+    "ts-node": {
+      "transpileOnly": true,
+      "files": true
+    },
+    "compilerOptions": {
+      "target": "ESNext",
+      "module": "CommonJS",
+      "moduleResolution": "Node16",
+      "strict": true,
+      "noImplicitAny": true,
+      "allowJs": true,
+      "checkJs": false,
+      "esModuleInterop": true,
+      "outDir": "dist",
+      "rootDir": "src",
+    },
+    "include": ["src/**/*", "tests/**/*", "src/api/atem.ts"],
+    "exclude": ["node_modules", "dist"]
+  }
+  
