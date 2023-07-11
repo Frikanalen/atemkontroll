@@ -14,7 +14,12 @@ export class AtemMixEffectsAPI {
   }
 
   setProgram: Middleware = async (ctx) => {
-    const { input } = await SetMESchema.validate(ctx.request.body);
+    let input: number;
+    try {
+      input = (await SetMESchema.validate(ctx.request.body)).input;
+    } catch (e) {
+      return ctx.throw(400, { error: e });
+    }
 
     try {
       await this.ME.setProgramInput(input);
@@ -30,8 +35,15 @@ export class AtemMixEffectsAPI {
   };
 
   setPreview: Middleware = async (ctx) => {
+    let input: number;
     try {
-      await this.ME.setPreviewInput(ctx.request.body.input);
+      input = (await SetMESchema.validate(ctx.request.body)).input;
+    } catch (e) {
+      return ctx.throw(400, { error: e });
+    }
+
+    try {
+      await this.ME.setPreviewInput(input);
     } catch (e) {
       return ctx.throw(500, { error: e });
     }

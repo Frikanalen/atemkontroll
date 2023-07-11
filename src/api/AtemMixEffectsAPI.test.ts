@@ -1,5 +1,5 @@
 import request from "supertest";
-import Koa from "koa";
+import Koa, { Context } from "koa";
 import Router from "koa-router";
 import { AtemMixEffectsAPI } from "./AtemMixEffectsAPI.js";
 import { bodyParser } from "@koa/bodyparser";
@@ -16,7 +16,9 @@ describe("mixEffects API", () => {
 
   beforeEach(() => {
     app = new Koa();
-    app.use(bodyParser());
+    app.use(
+      bodyParser({ encoding: "json", onError: (err: Error, ctx: Context) => ctx.throw(422, "body parse error") }),
+    );
     router = new Router();
     me = new AtemMixEffects(atem, 0);
     api = new AtemMixEffectsAPI(me);
@@ -25,6 +27,25 @@ describe("mixEffects API", () => {
     router.put("/preview", api.setPreview);
     router.get("/preview", api.getPreview);
     app.use(router.routes()).use(router.allowedMethods());
+  });
+
+  test("setProgramInput returns 422 for invalid JSON", async () => {
+    const spy = jest.spyOn(me, "setProgramInput");
+
+    const res = await request(app.callback()).put("/program").type("json").send("invalid JSON");
+
+    expect(res.status).toBe(422);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  test("setProgramInput returns 400 for malformed request", async () => {
+    const spy = jest.spyOn(me, "setProgramInput");
+
+    // Assuming input is a required field in the request, sending a request without it should be considered malformed
+    const res = await request(app.callback()).put("/program").send({});
+
+    expect(res.status).toBe(400);
+    expect(spy).not.toHaveBeenCalled();
   });
 
   test("setProgramInput", async () => {

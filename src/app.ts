@@ -28,8 +28,10 @@ router.get("/program", mixEffectsApi.getProgram);
 router.put("/program", mixEffectsApi.setProgram);
 router.get("/preview", mixEffectsApi.getPreview);
 router.put("/preview", mixEffectsApi.setPreview);
+
 router.get("/aux/:auxId", getAux);
 router.put("/aux/:auxId", validateBody(SetAuxSourceSchema), setAuxSource);
+
 router.get("/", getRoot);
 app.use(router.routes());
 
