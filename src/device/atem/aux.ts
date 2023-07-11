@@ -2,11 +2,11 @@ import { Atem } from "atem-connection";
 
 export class AtemAUX {
   private atem: Atem;
-  private readonly idx: number;
+  public readonly auxId: number;
 
-  constructor(atem: Atem, idx: number) {
+  constructor(atem: Atem, auxId: number) {
     this.atem = atem;
-    this.idx = idx;
+    this.auxId = auxId;
   }
 
   public async get() {
@@ -17,11 +17,11 @@ export class AtemAUX {
 
     const auxes = state.video.auxilliaries;
 
-    if (typeof auxes?.[this.idx] === "undefined") {
-      throw new Error(`AUX ${this.idx} does not exist on ATEM`);
+    if (typeof auxes?.[this.auxId] === "undefined") {
+      throw new Error(`AUX ${this.auxId} does not exist on ATEM`);
     }
 
-    return auxes[this.idx];
+    return auxes[this.auxId];
   }
 
   public async set(input: number) {
