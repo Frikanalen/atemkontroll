@@ -3,7 +3,7 @@ import { Middleware } from "koa";
 import { AtemMixEffects } from "../device/atem/AtemMixEffects.js";
 
 export const SetMESchema = yup.object().shape({
-  input: yup.number().required(),
+  inputId: yup.number().required(),
 });
 
 export class AtemMixEffectsAPI {
@@ -14,15 +14,15 @@ export class AtemMixEffectsAPI {
   }
 
   setProgram: Middleware = async (ctx) => {
-    let input: number;
+    let inputId: number;
     try {
-      input = (await SetMESchema.validate(ctx.request.body)).input;
+      inputId = (await SetMESchema.validate(ctx.request.body)).inputId;
     } catch (e) {
       return ctx.throw(400, { error: e });
     }
 
     try {
-      await this.ME.setProgramInput(input);
+      await this.ME.setProgramInput(inputId);
     } catch (e) {
       return ctx.throw(500, { error: e });
     }
@@ -35,15 +35,15 @@ export class AtemMixEffectsAPI {
   };
 
   setPreview: Middleware = async (ctx) => {
-    let input: number;
+    let inputId: number;
     try {
-      input = (await SetMESchema.validate(ctx.request.body)).input;
+      inputId = (await SetMESchema.validate(ctx.request.body)).inputId;
     } catch (e) {
       return ctx.throw(400, { error: e });
     }
 
     try {
-      await this.ME.setPreviewInput(input);
+      await this.ME.setPreviewInput(inputId);
     } catch (e) {
       return ctx.throw(500, { error: e });
     }
