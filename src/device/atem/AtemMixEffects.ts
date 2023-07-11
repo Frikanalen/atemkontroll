@@ -5,7 +5,7 @@ import { MixEffect } from "atem-connection/dist/state/video/index.js";
 const log = getLogger();
 
 export class AtemMixEffects {
-  idx: number;
+  readonly idx: number;
   atem: Atem;
   constructor(atem: Atem, idx: number) {
     log.debug(`Constructing AtemMixEffects #${idx}`);

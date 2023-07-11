@@ -7,7 +7,7 @@ export const SetMESchema = yup.object().shape({
 });
 
 export class AtemMixEffectsAPI {
-  ME: AtemMixEffects;
+  private ME: AtemMixEffects;
 
   constructor(ME: AtemMixEffects) {
     this.ME = ME;

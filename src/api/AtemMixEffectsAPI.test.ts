@@ -1,7 +1,7 @@
 import request from "supertest";
 import Koa from "koa";
 import Router from "koa-router";
-import { AtemMixEffectsAPI } from "./mixEffects.js";
+import { AtemMixEffectsAPI } from "./AtemMixEffectsAPI.js";
 import { bodyParser } from "@koa/bodyparser";
 import { AtemMixEffects } from "../device/atem/__mocks__/AtemMixEffects.js";
 import { atem } from "../device/atem/connection.js";
@@ -42,7 +42,7 @@ describe("mixEffects API", () => {
     const res = await request(app.callback()).get("/program");
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ programInput: 0 });
+    expect(res.body).toEqual({ programInput: 1 });
     expect(spy).toHaveBeenCalled();
   });
 
@@ -62,7 +62,7 @@ describe("mixEffects API", () => {
     const res = await request(app.callback()).get("/preview");
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ previewInput: 0 });
+    expect(res.body).toEqual({ previewInput: 1 });
     expect(spy).toHaveBeenCalled();
   });
 });
