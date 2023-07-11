@@ -16,13 +16,15 @@ app.use(bodyParser({ encoding: "json", onError: (err: Error, ctx: Context) => ct
 
 const router = new Router();
 
+const checkHealth = async (ctx: Context) => {
+  atem.state; // This will throw if we're not connected
+  ctx.body = "OK";
+};
+
 // middlewares
 app.use(logger());
 app.use(requireStaff());
 
-const getRoot = async (ctx: Context) => {
-  ctx.body = "Hello World";
-};
 const mixEffectsApi = new AtemMixEffectsAPI(new AtemMixEffects(atem, 0));
 // routes
 router.get("/program", mixEffectsApi.getProgram);
@@ -30,12 +32,13 @@ router.put("/program", mixEffectsApi.setProgram);
 router.get("/preview", mixEffectsApi.getPreview);
 router.put("/preview", mixEffectsApi.setPreview);
 
+// Currently only AUX 2 is supported (feeds the low-latency encoder on tx1)
 const auxApi = new AtemAUXAPI(new AtemAUX(atem, 2));
-
 router.get("/aux/2", auxApi.getAux);
 router.put("/aux/2", auxApi.setInput);
 
-router.get("/", getRoot);
+router.get("/_healthz", checkHealth);
+
 app.use(router.routes());
 
 if (!ATEM_HOST) {
