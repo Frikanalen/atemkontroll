@@ -1,5 +1,5 @@
 import { Context, Middleware } from "koa";
-import { AtemAUX } from "../device/atem/aux.js";
+import { AtemAUX } from "../device/atem/AtemAUX.js";
 import * as yup from "yup";
 
 export const SetAuxSourceSchema = yup.object().shape({

@@ -6,7 +6,7 @@ import { requireStaff } from "./middleware/requireStaff.js";
 import { bodyParser } from "@koa/bodyparser";
 import { AtemMixEffectsAPI } from "./api/AtemMixEffectsAPI.js";
 import { AtemMixEffects } from "./device/atem/AtemMixEffects.js";
-import { AtemAUX } from "./device/atem/aux.js";
+import { AtemAUX } from "./device/atem/AtemAUX.js";
 import { AtemAUXAPI } from "./api/AtemAUXAPI.js";
 
 const app = new Koa();
