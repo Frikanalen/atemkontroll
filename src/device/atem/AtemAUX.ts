@@ -11,17 +11,12 @@ export class AtemAUX {
 
   public async get() {
     const state = this.atem.state;
-    if (!state) {
-      throw new Error("ATEM state nullish; disconnected?");
-    }
+    if (!state) throw new Error("ATEM state nullish; disconnected?");
 
-    const auxes = state.video.auxilliaries;
+    const aux = state.video.auxilliaries?.[this.auxId];
+    if (typeof aux === "undefined") throw new Error(`AUX ${this.auxId} does not exist on ATEM`);
 
-    if (typeof auxes?.[this.auxId] === "undefined") {
-      throw new Error(`AUX ${this.auxId} does not exist on ATEM`);
-    }
-
-    return auxes[this.auxId];
+    return aux;
   }
 
   public async set(input: number) {
