@@ -35,6 +35,7 @@ export const getProfile = async (fkSession: string): Promise<V2AuthenticatedSess
       return await V2UnauthenticatedSession.validate(res.data);
     }
   } catch (e) {
+    log.error(e);
     throw new Error(`Validation failed: ${e}`);
   }
 };

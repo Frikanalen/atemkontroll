@@ -28,6 +28,7 @@ export class AtemAUXAPI {
 
     try {
       await this.aux.set(inputId);
+      ctx.body = { auxId: this.aux.auxId, inputId };
     } catch (e) {
       return ctx.throw(500, { error: e });
     }
