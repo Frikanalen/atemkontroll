@@ -20,6 +20,6 @@ export class AtemAUX {
   }
 
   public async set(input: number) {
-    await this.atem.setAuxSource(input);
+    await this.atem.setAuxSource(input, this.auxId);
   }
 }
