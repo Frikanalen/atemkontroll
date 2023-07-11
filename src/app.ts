@@ -33,7 +33,7 @@ router.get("/preview", mixEffectsApi.getPreview);
 router.put("/preview", mixEffectsApi.setPreview);
 
 // Currently only AUX 1 is supported (feeds the low-latency encoder on tx4)
-const auxApi = new AtemAUXAPI(new AtemAUX(atem, 1));
+const auxApi = new AtemAUXAPI(new AtemAUX(atem, 0));
 router.get("/aux/1", auxApi.getAux);
 router.put("/aux/1", auxApi.setInput);
 
