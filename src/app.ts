@@ -1,13 +1,14 @@
 import Koa, { Context } from "koa";
 import logger from "koa-logger";
 import Router from "@koa/router";
-import { atem } from "./device/atem/connection.js";
+import { atem, connect } from "./device/atem/connection.js";
 import { requireStaff } from "./middleware/requireStaff.js";
 import { bodyParser } from "@koa/bodyparser";
 import { AtemMixEffectsAPI } from "./api/AtemMixEffectsAPI.js";
 import { AtemMixEffects } from "./device/atem/AtemMixEffects.js";
 import { AtemAUX } from "./device/atem/AtemAUX.js";
 import { AtemAUXAPI } from "./api/AtemAUXAPI.js";
+import { ATEM_HOST } from "./config.js";
 
 const app = new Koa();
 
@@ -37,11 +38,9 @@ router.put("/aux/2", auxApi.setInput);
 router.get("/", getRoot);
 app.use(router.routes());
 
-const run = async () => {
-  await atem.connect("10.3.2.1");
+if (!ATEM_HOST) {
+  throw new Error("ATEM_HOST not set");
+}
+connect(ATEM_HOST).then(() => {
   app.listen(3000);
-};
-
-(async () => {
-  await run();
-})();
+});

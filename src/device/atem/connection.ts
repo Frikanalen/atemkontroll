@@ -34,8 +34,8 @@ const applyInitialConfiguration = async (atem: Atem) => {
 };
 
 export const connect = (hostName: string) =>
-  new Promise<void>(async (resolve) => {
-    log.info(`Connecting to ATEM mixer at ${hostName}.`);
+  new Promise<void>(async (resolve, reject) => {
+    log.info(`Connecting to ATEM mixer at ${hostName}...`);
 
     atem.on("error", log.error);
 
@@ -49,5 +49,14 @@ export const connect = (hostName: string) =>
       resolve();
     });
 
-    await atem.connect(hostName);
+    atem.on("disconnected", () => {
+      log.info("Disconnected from ATEM");
+    });
+
+    try {
+      await atem.connect(hostName);
+    } catch (e) {
+      log.error(`Failed to connect to ATEM: ${e}`);
+      reject();
+    }
   });

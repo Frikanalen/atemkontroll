@@ -5,7 +5,7 @@
   },
   "license": "MIT",
   "scripts": {
-    "start": "yarn build && node ./dist/app.js",
+    "start": "node ./dist/app.js",
     "build": "tsc",
     "watch": "nodemon --watch 'src/**/*' -e ts --exec 'ts-node' ./src/app.ts",
     "lint": "node_modules/tslint/bin/tslint -c tslint.json -p tsconfig.json --force",
