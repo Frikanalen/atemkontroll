@@ -40,13 +40,13 @@ The microservice will be available at `http://localhost:3000`.
 The following API endpoints are provided by the microservice:
 
 All endpoints require a valid session cookie, checked against toches.
-Currently only 1 M/E bus is supported, and only aux 2 is supported.
+Currently only 1 M/E bus is supported, and only AUX 1 is supported.
 
 For source IDs, consult the excellent [SKAARHOJ documentation](https://www.skaarhoj.com/discover/blackmagic-atem-switcher-protocol#:~:text=Commands-,VIDEOSRC,-Array).
 
 - `GET /program`: Retrieves the current program input of the video mixer.
 - `GET /preview`: Retrieves the current preview input of the video mixer.
-- `GET /aux/2`: Retrieves the input source of AUX 2 on the ATEM video mixer.
+- `GET /aux/1`: Retrieves the input source of AUX 1 on the ATEM video mixer.
 
 GET response body schema:
    ```javascript
@@ -57,7 +57,7 @@ GET response body schema:
 
 - `PUT /program`: Sets the program input of the ATEM video mixer.
 - `PUT /preview`: Sets the preview input of the ATEM video mixer.
-- `PUT /aux/2`: Sets the input source of AUX 2 on the ATEM video mixer.
+- `PUT /aux/1`: Sets the input source of AUX 1 on the ATEM video mixer.
 
 PUT request body schema:
   ```javascript
