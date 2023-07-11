@@ -1,23 +1,40 @@
 import axios from "axios";
+import * as yup from "yup";
 import { FK_API } from "../config.js";
+import { getLogger } from "../log";
 
-interface authenticationCookies {
-  csrftoken?: string;
-  sessionid?: string;
-}
+const log = getLogger();
 
-export type AuthenticationResponse = {
-  isStaff: boolean;
-  email: string;
-};
+const V2AuthenticatedSessionSchema = yup.object().shape({
+  authenticated: yup.boolean().oneOf([true]),
+  user: yup.object().shape({
+    id: yup.number(),
+    email: yup.string(),
+    permissions: yup.array().of(yup.string()),
+  }),
+});
 
-// Get profile from FK API, returning email and staff status.
-export const getProfile = async ({ csrftoken, sessionid }: authenticationCookies): Promise<AuthenticationResponse> => {
-  if (!(csrftoken && sessionid)) throw new Error("Refusing to authenticate without authorization headers");
+export type V2AuthenticatedSession = yup.InferType<typeof V2AuthenticatedSessionSchema>;
 
-  const response = await axios.get(`${FK_API}/user`, {
-    headers: { cookie: `csrftoken=${csrftoken}; sessionid=${sessionid}` },
+const V2UnauthenticatedSession = yup.object().shape({ authenticated: yup.boolean().oneOf([false]).required() });
+
+export type V2UnauthenticatedSession = yup.InferType<typeof V2UnauthenticatedSession>;
+
+export const getProfile = async (fkSession: string): Promise<V2AuthenticatedSession | V2UnauthenticatedSession> => {
+  const res = await axios.get(`${FK_API}/auth/user?withRoles=true`, {
+    headers: {
+      cookie: `fk-session=${fkSession}`,
+    },
   });
-
-  return response.data;
+  try {
+    if (res.data.authenticated === true) {
+      log.info(`Authenticated API V2 request for "${res.data.user.email}"`);
+      return await V2AuthenticatedSessionSchema.validate(res.data);
+    } else {
+      log.info(`Unauthenticated API V2 request`);
+      return await V2UnauthenticatedSession.validate(res.data);
+    }
+  } catch (e) {
+    throw new Error(`Validation failed: ${e}`);
+  }
 };

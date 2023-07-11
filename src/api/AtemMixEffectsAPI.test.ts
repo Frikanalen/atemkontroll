@@ -50,7 +50,7 @@ describe("mixEffects API", () => {
 
   test("setProgramInput", async () => {
     const spy = jest.spyOn(me, "setProgramInput");
-    const res = await request(app.callback()).put("/program").send({ input: 1 });
+    const res = await request(app.callback()).put("/program").send({ inputId: 1 });
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ message: "ok" });
@@ -70,7 +70,7 @@ describe("mixEffects API", () => {
   test("setPreviewInput", async () => {
     const spy = jest.spyOn(me, "setPreviewInput");
 
-    const res = await request(app.callback()).put("/preview").send({ input: 1 });
+    const res = await request(app.callback()).put("/preview").send({ inputId: 1 });
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ message: "ok" });

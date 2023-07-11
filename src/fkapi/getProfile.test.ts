@@ -1,22 +1,31 @@
 import { getProfile } from "./getProfile.js";
-import { FK_API } from "../config.js";
 import axios from "axios";
-const mockAxios = axios as jest.Mocked<typeof axios>;
+
 jest.mock("axios");
 
-describe("getProfile", () => {
-  it("throws an error if csrftoken or sessionid are not provided", async () => {
-    await expect(getProfile({})).rejects.toThrow("Refusing to authenticate without authorization headers");
+const mockAxios = axios as jest.Mocked<typeof axios>;
+
+const fkSession = "test-session";
+
+describe("getV2Session", () => {
+  it("returns the validated response if the validation is successful", async () => {
+    const mockResponse = {
+      data: {
+        authenticated: true,
+        user: {
+          id: 1,
+          email: "test@example.com",
+          permissions: ["ATEM_CONTROL"],
+        },
+      },
+    };
+    mockAxios.get.mockResolvedValue(mockResponse);
+    const session = await getProfile(fkSession);
+    expect(session).toEqual(mockResponse.data);
   });
 
-  it("makes a request to the correct URL with the correct headers", async () => {
-    const mockData = { isStaff: true, email: "test@test.com" };
-    mockAxios.get.mockResolvedValue({ data: mockData });
-
-    await getProfile({ csrftoken: "testcsrftoken", sessionid: "testsessionid" });
-
-    expect(mockAxios.get).toHaveBeenCalledWith(`${FK_API}/user`, {
-      headers: { cookie: "csrftoken=testcsrftoken; sessionid=testsessionid" },
-    });
+  it("throws an error if the validation fails", async () => {
+    mockAxios.get.mockResolvedValue({ data: { wrong: "data" } });
+    await expect(getProfile(fkSession)).rejects.toThrowError("Validation failed");
   });
 });

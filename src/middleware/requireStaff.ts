@@ -1,25 +1,38 @@
 import { getLogger } from "../log.js";
 import { Middleware } from "koa";
-import { AuthenticationResponse, getProfile } from "../fkapi/getProfile.js";
+import { V2AuthenticatedSession, V2UnauthenticatedSession, getProfile } from "../fkapi/getProfile.js";
 
 const logger = getLogger();
 
 export const requireStaff = (): Middleware => async (ctx, next) => {
-  const csrftoken = ctx.cookies.get("csrftoken");
-  const sessionid = ctx.cookies.get("sessionid");
+  const fkSession = ctx.cookies.get("fk-session");
 
-  let profile: AuthenticationResponse | null = null;
+  if (!fkSession) {
+    logger.warn(`No session ID, refusing`);
+    ctx.throw(401, "No session ID");
+    return;
+  }
+
+  let profile: V2AuthenticatedSession | V2UnauthenticatedSession = { authenticated: false };
 
   try {
-    profile = await getProfile({ csrftoken, sessionid });
+    profile = await getProfile(fkSession);
   } catch (err) {
     ctx.throw(500, "Error getting profile");
     return;
   }
 
-  const { isStaff, email } = profile;
+  if (!profile.authenticated) {
+    logger.warn(`Session ID not authenticated, refusing`);
+    ctx.throw(401, "Session ID not authenticated");
+    return;
+  }
 
-  if (!isStaff) {
+  const authenticatedProfile = profile as V2AuthenticatedSession;
+
+  const { permissions, email } = authenticatedProfile.user;
+
+  if (!permissions?.includes("ATEM_CONTROL")) {
     logger.warn(`User ${email} is not staff, refusing`);
     ctx.throw(403, "User must be staff");
     return;
