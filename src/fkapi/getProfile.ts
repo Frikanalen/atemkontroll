@@ -1,5 +1,5 @@
 import axios from "axios";
-import { FK_API_URL } from "../config.js";
+import { FK_API } from "../config.js";
 
 interface authenticationCookies {
   csrftoken?: string;
@@ -15,7 +15,7 @@ export type AuthenticationResponse = {
 export const getProfile = async ({ csrftoken, sessionid }: authenticationCookies): Promise<AuthenticationResponse> => {
   if (!(csrftoken && sessionid)) throw new Error("Refusing to authenticate without authorization headers");
 
-  const response = await axios.get(`${FK_API_URL}/user`, {
+  const response = await axios.get(`${FK_API}/user`, {
     headers: { cookie: `csrftoken=${csrftoken}; sessionid=${sessionid}` },
   });
 

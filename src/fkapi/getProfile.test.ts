@@ -1,5 +1,5 @@
 import { getProfile } from "./getProfile.js";
-import { FK_API_URL } from "../config.js";
+import { FK_API } from "../config.js";
 import axios from "axios";
 const mockAxios = axios as jest.Mocked<typeof axios>;
 jest.mock("axios");
@@ -15,7 +15,7 @@ describe("getProfile", () => {
 
     await getProfile({ csrftoken: "testcsrftoken", sessionid: "testsessionid" });
 
-    expect(mockAxios.get).toHaveBeenCalledWith(`${FK_API_URL}/user`, {
+    expect(mockAxios.get).toHaveBeenCalledWith(`${FK_API}/user`, {
       headers: { cookie: "csrftoken=testcsrftoken; sessionid=testsessionid" },
     });
   });
