@@ -38,7 +38,7 @@ spec:
             severity: warning
           annotations:
             summary: "Vision mixer program is on {{ "{{ $labels.short_name }}" }} (input {{ "{{ $labels.input }}" }})"
-            description: "Program has been on {{ "{{ $labels.short_name }}" }} for {{ $r.unexpectedSourceFor }}, not casparcg1 or tx3. Fine during a live studio production; otherwise switch back."
+            description: "Program has been on {{ "{{ $labels.short_name }}" }} for {{ $r.unexpectedSourceFor }}, neither the normal source nor the fallback. Fine during a live studio production; otherwise switch back."
 
         - alert: AtemOnFallbackSource
           expr: atem_program_source{me="0", short_name=~"(?i){{ .Values.sources.warning }}"} == 1
@@ -47,7 +47,7 @@ spec:
             severity: warning
           annotations:
             summary: "Vision mixer program is on the fallback, {{ "{{ $labels.short_name }}" }}"
-            description: "Program has been on {{ "{{ $labels.short_name }}" }} for {{ $r.fallbackSourceFor }} instead of casparcg1."
+            description: "Program has been on {{ "{{ $labels.short_name }}" }} for {{ $r.fallbackSourceFor }} instead of the normal source."
 
         - alert: AtemFadeToBlack
           expr: atem_fade_to_black{me="0"} == 1
