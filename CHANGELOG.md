@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/Frikanalen/atemkontroll/compare/v0.2.0...v0.2.1) (2026-11-17)
+
+
+### Bug Fixes
+
+* **chart:** default sources to the studio mixer's names (VM1, TX3) ([#4](https://github.com/Frikanalen/atemkontroll/issues/4)) ([39e9e01](https://github.com/Frikanalen/atemkontroll/commit/39e9e013bd717de744de2571750c4f6c5aac9d52))
+
 ## [0.2.0](https://github.com/Frikanalen/atemkontroll/compare/v0.1.0...v0.2.0) (2026-11-17)
 
 
