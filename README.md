@@ -1,117 +1,85 @@
-# atemkontroll - ATEM Control Microservice for Frikanalen
+# atemkontroll
 
-This repository contains the back-end microservice used by the [control frontend](https://github.com/frikanalen/styring).
+A small HTTP API for the studio's ATEM 1 M/E, built on NRK's
+[atem-connection](https://github.com/nrkno/sofie-atem-connection).
+It keeps one connection to the mixer open and reconnects by itself.
 
-The microservice provides control and management capabilities for the ATEM video mixer.
+## Running
 
-## Table of Contents
-
-- [Installation](#installation)
-- [Usage](#usage)
-- [API Endpoints](#api-endpoints)
-- [Configuration](#configuration)
-- [Docker](#docker)
-- [Contributing](#contributing)
-- [License](#license)
-
-## Installation
-
-To install and set up the ATEM control microservice, follow these steps:
-
-1. Clone this repository to your local machine.
-2. Install the required dependencies by running the following command:
-
-   ```bash
-   yarn install
-   ```
-
-## Usage
-
-To start the ATEM control microservice, use the following command:
-
-```bash
-yarn start
+```sh
+npm ci
+npm run build
+ATEM_ADDRESS=10.3.2.1 npm start
 ```
 
-The microservice will be available at `http://localhost:3000`.
+| Variable       | Default | Meaning                                                        |
+| -------------- | ------- | -------------------------------------------------------------- |
+| `ATEM_ADDRESS` |         | The mixer's IP address, or `mock` for a pretend 1 M/E (staging, local development). Required. |
+| `PORT`         | `8080`  | HTTP port.                                                     |
+| `API_TOKEN`    |         | If set, every request except health checks needs `Authorization: Bearer <token>`. |
 
-## API Endpoints
+## API
 
-The following API endpoints are provided by the microservice:
+All bodies are JSON. Every command answers with the current state (below)
+or `{"error": "..."}`. Commands that act on an M/E take an optional `me`
+(default `0`). The ATEM acknowledges a command before its state update
+arrives, so the state in a command's answer can be a moment behind. Use
+`/events` if you need to see the result.
 
-All endpoints require a valid session cookie, checked against toches.
-Currently only 1 M/E bus is supported, and only AUX 1 is supported.
+| Method | Path                | Body                       | Does                         |
+| ------ | ------------------- | -------------------------- | ---------------------------- |
+| GET    | `/state`            |                            | Current state                |
+| GET    | `/events`           |                            | State as server-sent events, on every change |
+| POST   | `/program`          | `{"input": 1}`             | Put a source on program      |
+| POST   | `/preview`          | `{"input": 2}`             | Put a source on preview      |
+| POST   | `/cut`              |                            | Cut                          |
+| POST   | `/auto`             |                            | Auto transition              |
+| POST   | `/fade-to-black`    |                            | Toggle fade to black         |
+| POST   | `/dsk/{n}`          | `{"onAir": true}`          | Downstream key on or off air |
+| POST   | `/dsk/{n}/auto`     |                            | Auto-transition a DSK        |
+| POST   | `/aux/{n}`          | `{"input": 3}`             | Route a source to an aux     |
+| POST   | `/macros/{n}/run`   |                            | Run a macro                  |
+| POST   | `/macros/stop`      |                            | Stop the running macro       |
+| GET    | `/healthz`          |                            | The process is up            |
+| GET    | `/readyz`           |                            | 200 when connected to the mixer, else 503 |
 
-For source IDs, consult the excellent [SKAARHOJ documentation](https://www.skaarhoj.com/discover/blackmagic-atem-switcher-protocol#:~:text=Commands-,VIDEOSRC,-Array).
+Status codes: `400` for a bad body or a source, DSK, aux or macro the mixer
+does not have; `401` for a missing token; `503` while the mixer is
+unreachable; `502` if the mixer refused the command.
 
-- `GET /program`: Retrieves the current program input of the video mixer.
-- `GET /preview`: Retrieves the current preview input of the video mixer.
-- `GET /aux/1`: Retrieves the input source of AUX 1 on the ATEM video mixer.
-
-GET response body schema:
-   ```javascript
-   {
-     inputId: number // Input video source ID
-   }
-   ```
-
-- `PUT /program`: Sets the program input of the ATEM video mixer.
-- `PUT /preview`: Sets the preview input of the ATEM video mixer.
-- `PUT /aux/1`: Sets the input source of AUX 1 on the ATEM video mixer.
-
-PUT request body schema:
-  ```javascript
-  {
-    inputId: number // Input video source ID
-  }
-  ```
-
-Responses:
-- `200 OK`: The program input was successfully set.
-- `400 Bad Request`: The request body is missing or contains invalid input.
-- `403 Forbidden`: The session is of a non-staff user.
-- `422 Unprocessable Entity`: The request body is invalid JSON.
-- `500 Internal Server Error`: The ATEM video mixer returned an error, or authentication against the backend failed.
-
-
-- `GET /_healthz`: Checks the health of the microservice.
-
-   - Response:
-      - `200 OK`: The microservice is healthy.
-
-## Configuration
-
-The configuration of the ATEM control microservice is managed through environment variables. Make sure to set the following environment variables:
-
-- `FK_API`: The URL of the Frikanalen API. This is required in production mode.
-- `ATEM_HOST`: The hostname or IP address of the ATEM video mixer. This is required in production mode.
-
-## Docker
-
-A Dockerfile is provided to easily build and run the ATEM control microservice in a containerized environment.
-
-To build the Docker image, run the following command:
-
-```bash
-docker build -t atemkontroll .
+```sh
+curl -s localhost:8080/state
+curl -s -XPOST localhost:8080/program -d '{"input": 2}'
+curl -s -XPOST localhost:8080/auto
+curl -sN localhost:8080/events
 ```
 
-To run the microservice container, use the following command:
+State looks like:
 
-```bash
-docker run -p 3000:3000 --env FK_API=<FK_API_URL> --env ATEM_HOST=<ATEM_HOST> atemkontroll
+```json
+{
+  "connected": true,
+  "model": "ATEM 1 M/E Production Studio 4K",
+  "inputs": [{ "id": 1, "shortName": "CAM1", "longName": "Camera 1" }],
+  "mixEffects": [
+    { "index": 0, "program": 1, "preview": 2, "inTransition": false,
+      "fadeToBlack": { "fullyBlack": false, "inTransition": false } }
+  ],
+  "downstreamKeyers": [{ "index": 0, "onAir": false, "tie": false, "inTransition": false }],
+  "auxes": [{ "index": 0, "source": 10010 }],
+  "macros": [{ "index": 0, "name": "Opening" }]
+}
 ```
 
-Replace `<FK_API_URL>` and `<ATEM_HOST>` with the actual values for your environment.
+## Deploying
 
-## Contributing
+The image is `ghcr.io/frikanalen/atemkontroll`, and `chart/` is its Helm
+chart. Set `atemAddress`, and `tokenSecret` to a Secret holding
+`API_TOKEN`. There is no ingress by default; callers inside the cluster use
+the Service.
 
-Contributions to the ATEM control microservice are welcome!
+## Releases
 
-If you find any issues or want to add new features, feel free to open an issue or submit a pull request.
-
-Please follow the existing code style and include tests for any new functionality.
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
+Commits follow Conventional Commits (`feat: ...`, `fix: ...`).
+release-please keeps a release pull request open on `main`; merging it tags
+`vX.Y.Z`, which builds the image the chart points at.

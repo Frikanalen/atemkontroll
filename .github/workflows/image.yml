@@ -1,0 +1,57 @@
+name: Image
+
+on:
+  push:
+
+# contents and pull-requests are for release-please, which keeps a release
+# pull request open on main and tags the release when it is merged.
+permissions:
+  contents: write
+  pull-requests: write
+  packages: write
+
+jobs:
+  build:
+    name: Build and push the image
+    runs-on: ubuntu-latest
+    steps:
+      # On main: keep the release pull request up to date, or, when that
+      # pull request has just been merged, tag the release. The image built
+      # below then also gets the release's tag (v1.2.3), which is the tag
+      # the chart asks for.
+      - name: Release pull request or release
+        id: release
+        if: github.ref == 'refs/heads/main'
+        uses: googleapis/release-please-action@v5
+        with:
+          # No release-type here on purpose: passing it puts the action in
+          # single-package mode, where release-please-config.json is never
+          # read and chart/Chart.yaml is not bumped.
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Tags and labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/frikanalen/atemkontroll
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=tag
+            type=ref,event=branch
+            type=raw,value=${{ steps.release.outputs.tag_name }},enable=${{ github.ref == 'refs/heads/main' && steps.release.outputs.release_created == 'true' }}
+            type=sha
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
