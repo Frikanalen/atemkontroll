@@ -502,7 +502,7 @@
                         "color": "transparent",
                         "index": 0
                       },
-                      "-1": {
+                      "1": {
                         "text": "BLACK",
                         "color": "red",
                         "index": 1
