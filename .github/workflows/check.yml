@@ -46,7 +46,7 @@ jobs:
           --set ingress.enabled=true --set ingress.hostname=example.test
           --set serviceMonitor.enabled=true
           --set prometheusRule.enabled=true
-          --set 'prometheusRule.expectedProgramInputs={1,3010}'
+          --set sources.warning='tx3|tx4'
           --set grafanaDashboard.enabled=true
           --set tokenSecret=atemkontroll
       # The dashboard ConfigMap must hold valid JSON after the mappings are

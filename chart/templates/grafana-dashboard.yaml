@@ -1,28 +1,4 @@
 {{- if .Values.grafanaDashboard.enabled }}
-{{- $g := .Values.grafanaDashboard }}
-{{- /* Source names and colours: status normal = green, warning = yellow,
-       anything else, named or not, red. */}}
-{{- $colors := dict "normal" "green" "warning" "yellow" }}
-{{- $options := dict }}
-{{- $i := 0 }}
-{{- range $id, $s := $g.sources }}
-{{- $_ := set $options (toString $id) (dict "text" $s.name "color" (get $colors (default "" $s.status) | default "red") "index" $i) }}
-{{- $i = add1 $i }}
-{{- end }}
-{{- $mappings := list (dict "type" "value" "options" $options) (dict "type" "range" "options" (dict "from" -1000000 "to" 1000000 "result" (dict "color" "red" "index" $i))) }}
-{{- /* One query per monitored source, legend "<name> left|right". */}}
-{{- $targets := list }}
-{{- $instant := list }}
-{{- range $id, $s := $g.sources }}
-{{- if $s.audio }}
-{{- $ref := printf "S%s" (toString $id) }}
-{{- $expr := printf "atem_input_audio_level_dbfs{input=\"%s\"}" (toString $id) }}
-{{- $legend := printf "%s {{channel}}" $s.name }}
-{{- $ds := dict "type" "prometheus" "uid" "$datasource" }}
-{{- $targets = append $targets (dict "datasource" $ds "expr" $expr "legendFormat" $legend "refId" $ref) }}
-{{- $instant = append $instant (dict "datasource" $ds "expr" $expr "legendFormat" $legend "refId" $ref "instant" true) }}
-{{- end }}
-{{- end }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -34,8 +10,7 @@ metadata:
 data:
   vision-mixer.json: |-
     {{- .Files.Get "dashboards/vision-mixer.json"
-        | replace "__SOURCE_MAPPINGS__" (toJson $mappings)
-        | replace "__AUDIO_TARGETS_INSTANT__" (toJson $instant)
-        | replace "__AUDIO_TARGETS__" (toJson $targets)
+        | replace "__NORMAL__" .Values.sources.normal
+        | replace "__WARNING__" .Values.sources.warning
         | nindent 4 }}
 {{- end }}

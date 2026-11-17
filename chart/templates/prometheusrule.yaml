@@ -31,14 +31,23 @@ spec:
             description: atemkontroll has had no connection to the ATEM for two minutes. Check the mixer's power and network.
 
         - alert: AtemUnexpectedProgramSource
-          # Program is not one of the inputs we expect on air.
-          expr: atem_program_input{me="0"}{{ range $r.expectedProgramInputs }} != {{ . }}{{ end }}
-          for: {{ $r.unexpectedProgramFor }}
+          # Neither the normal source nor the fallback is on program.
+          expr: atem_program_source{me="0", short_name!~"(?i){{ .Values.sources.normal }}|{{ .Values.sources.warning }}"} == 1
+          for: {{ $r.unexpectedSourceFor }}
           labels:
             severity: warning
           annotations:
-            summary: "Vision mixer program is on input {{ "{{ $value }}" }}"
-            description: "Program has been on input {{ "{{ $value }}" }} for {{ $r.unexpectedProgramFor }}, not on {{ join " or " $r.expectedProgramInputs }}. Fine during a live studio production; otherwise switch back."
+            summary: "Vision mixer program is on {{ "{{ $labels.short_name }}" }} (input {{ "{{ $labels.input }}" }})"
+            description: "Program has been on {{ "{{ $labels.short_name }}" }} for {{ $r.unexpectedSourceFor }}, not casparcg1 or tx3. Fine during a live studio production; otherwise switch back."
+
+        - alert: AtemOnFallbackSource
+          expr: atem_program_source{me="0", short_name=~"(?i){{ .Values.sources.warning }}"} == 1
+          for: {{ $r.fallbackSourceFor }}
+          labels:
+            severity: warning
+          annotations:
+            summary: "Vision mixer program is on the fallback, {{ "{{ $labels.short_name }}" }}"
+            description: "Program has been on {{ "{{ $labels.short_name }}" }} for {{ $r.fallbackSourceFor }} instead of casparcg1."
 
         - alert: AtemFadeToBlack
           expr: atem_fade_to_black{me="0"} == 1
@@ -55,8 +64,8 @@ spec:
           labels:
             severity: warning
           annotations:
-            summary: "The input on program (input {{ "{{ $labels.input }}" }}) has no audio"
-            description: "Input {{ "{{ $labels.input }}" }} is on program and has stayed under {{ $r.silenceDbfs }} dBFS for {{ $r.silenceFor }}."
+            summary: "{{ "{{ $labels.short_name }}" }} is on air with no audio"
+            description: "{{ "{{ $labels.short_name }}" }} (input {{ "{{ $labels.input }}" }}) is on program and has stayed under {{ $r.silenceDbfs }} dBFS for {{ $r.silenceFor }}."
 
         - alert: AtemAudioLevelsStale
           expr: atem_connected == 1 and on() (atem_audio_levels_age_seconds > 10 or absent(atem_audio_levels_age_seconds))

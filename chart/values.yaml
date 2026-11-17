@@ -38,33 +38,34 @@ serviceMonitor:
   # Extra labels, if Prometheus selects ServiceMonitors by label.
   labels: {}
 
+# Which inputs are which, by the short name set on the mixer (ATEM
+# Software Control), not by input number, so moving a cable changes
+# nothing here. Case-insensitive regexes over the whole name; keep them to
+# plain names and |, no backslashes. Check the names with the
+# atem_input_info metric or GET /state.
+sources:
+  # Normally on air.
+  normal: "ccg1|casparcg1|caspar1"
+  # The fallback: on air is acceptable but worth a look.
+  warning: "tx3"
+
 # Alerts (needs serviceMonitor.enabled). Routed by Alertmanager like the
 # other alerts.
 prometheusRule:
   enabled: false
-  # Inputs that are normal on program; anything else warns after
-  # unexpectedProgramFor. Input 1 is casparcg1 (playout).
-  expectedProgramInputs: [1]
-  unexpectedProgramFor: 5m
+  # Anything other than the normal or fallback source on program.
+  unexpectedSourceFor: 2m
+  # The fallback source on program.
+  fallbackSourceFor: 10m
   fadeToBlackFor: 30s
   # The input on program counts as silent below this level.
   silenceDbfs: -50
   silenceFor: 2m
 
-# Grafana dashboard "Frikanalen / Vision Mixer": what is on air, audio per
-# input, alerts. Needs serviceMonitor.enabled.
+# Grafana dashboard "Frikanalen / Vision Mixer". Needs serviceMonitor.enabled.
+# Colours and the audio panels follow `sources` above.
 grafanaDashboard:
   enabled: false
-  # The ATEM's inputs by number. status sets the colour when the input is
-  # on program: normal = green, warning = yellow, anything else (and any
-  # input not listed) = red. audio: true puts the input's levels in the
-  # "Audio now" and "Audio history" panels.
-  sources:
-    "1": { name: casparcg1, status: normal, audio: true }
-    "2": { name: tx3, status: warning, audio: true }
-    "0": { name: Black }
-    "10": { name: Multiviewer }
-    "1000": { name: Color bars }
 
 # Only needed if the mixer is reachable from some nodes and not others.
 nodeSelector: {}

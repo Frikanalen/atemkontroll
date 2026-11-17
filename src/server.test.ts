@@ -155,10 +155,11 @@ describe('vision mixer API', () => {
     mixer.meter.update('classic', new Map([[1, { leftDbfs: -60, rightDbfs: -60, leftPeakDbfs: -60, rightPeakDbfs: -60 }]]))
     const base = await start(mixer, 's3cret')
     const text = await (await fetch(`${base}/metrics`)).text()
-    expect(text).toContain('atem_input_audio_level_dbfs{input="1",channel="left"} -60')
+    expect(text).toContain('atem_input_audio_level_dbfs{input="1",short_name="CAM1",long_name="Camera 1",channel="left"} -60')
     expect(text).toContain('atem_program_input{me="0"} 1')
     expect(text).toContain('atem_input_info{input="1",short_name="CAM1",long_name="Camera 1"} 1')
-    expect(text).toContain('atem_program_audio_level_dbfs{input="1"} -60')
+    expect(text).toContain('atem_program_audio_level_dbfs{input="1",short_name="CAM1",long_name="Camera 1"} -60')
+    expect(text).toContain('atem_program_source{me="0",input="1",short_name="CAM1",long_name="Camera 1"} 1')
     expect((await fetch(`${base}/levels`)).status).toBe(401)
   })
 

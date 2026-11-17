@@ -104,7 +104,8 @@ refuses to start if the parser has moved.
 
 ### Metrics
 
-`atem_connected`, `atem_input_info{input,short_name,long_name}` (names as set on the mixer), `atem_program_input{me}`, `atem_preview_input{me}`,
+`atem_connected`, `atem_input_info{input,short_name,long_name}` (names as set on the mixer),
+`atem_program_source{me,input,short_name,long_name}` and `atem_preview_source` (always 1), `atem_program_input{me}`, `atem_preview_input{me}`,
 `atem_in_transition{me}`, `atem_fade_to_black{me}`, and once levels
 arrive `atem_audio_levels_age_seconds`,
 `atem_input_audio_level_dbfs{input,channel}`,
@@ -118,14 +119,18 @@ chart. Set `atemAddress`, and `tokenSecret` to a Secret holding
 `API_TOKEN`. There is no ingress by default; callers inside the cluster use
 the Service, and hosts outside it use an ingress on the internal class.
 `serviceMonitor.enabled` makes Prometheus scrape `/metrics`, and
-`prometheusRule.enabled` adds alerts: mixer unreachable, program on an
-unexpected input (`prometheusRule.expectedProgramInputs`, default input 1),
-fade to black, the program input silent, and audio levels gone stale.
+`prometheusRule.enabled` adds alerts: mixer unreachable, program on
+something other than casparcg1 or tx3, program on tx3 for long, fade to
+black, the input on air silent, and audio levels gone stale.
 `grafanaDashboard.enabled` adds the "Frikanalen / Vision Mixer" dashboard:
 the source on air (green for casparcg1, yellow for tx3, red for anything
 else), which source was on air when, current and historical audio for
-casparcg1 and tx3, all inputs' audio, and the mixer alerts. Inputs, their
-names, colours and which get audio panels are `grafanaDashboard.sources`. The dashboard JSON is
+casparcg1 and tx3, all inputs' audio, and the mixer alerts.
+
+Both match inputs by the short name set on the mixer, not by number:
+`sources.normal` (casparcg1) and `sources.warning` (tx3) are
+case-insensitive regexes. Metrics about an input carry `input`,
+`short_name` and `long_name` labels. The dashboard JSON is
 `chart/dashboards/vision-mixer.json`.
 
 ## Releases

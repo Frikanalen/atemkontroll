@@ -23,7 +23,7 @@
       "id": 1,
       "type": "stat",
       "title": "Source on air",
-      "description": "The input on program. Green is casparcg1 (normal), yellow is tx3 (fallback), red is anything else.",
+      "description": "The input on program, by the name set on the mixer. Green is the normal source (casparcg1), yellow the fallback (tx3), red anything else.",
       "datasource": {
         "type": "prometheus",
         "uid": "$datasource"
@@ -40,8 +40,8 @@
             "type": "prometheus",
             "uid": "$datasource"
           },
-          "expr": "max(atem_program_input{me=\"0\"})",
-          "legendFormat": "",
+          "expr": "atem_program_source{me=\"0\"}",
+          "legendFormat": "{{short_name}}",
           "refId": "A",
           "instant": true
         }
@@ -56,24 +56,50 @@
         },
         "colorMode": "background",
         "graphMode": "none",
-        "textMode": "value",
+        "textMode": "name",
         "justifyMode": "center"
       },
       "fieldConfig": {
         "defaults": {
-          "mappings": __SOURCE_MAPPINGS__,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
+          "mappings": [],
+          "noValue": "No data",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "red"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "/^(__NORMAL__)$/i"
+            },
+            "properties": [
               {
-                "color": "red",
-                "value": null
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
               }
             ]
           },
-          "noValue": "No data"
-        },
-        "overrides": []
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "/^(__WARNING__)$/i"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          }
+        ]
       }
     },
     {
@@ -135,6 +161,7 @@
               }
             }
           ],
+          "noValue": "No data",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -143,8 +170,7 @@
                 "value": null
               }
             ]
-          },
-          "noValue": "No data"
+          }
         },
         "overrides": []
       }
@@ -208,6 +234,7 @@
               }
             }
           ],
+          "noValue": "No data",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -216,8 +243,7 @@
                 "value": null
               }
             ]
-          },
-          "noValue": "No data"
+          }
         },
         "overrides": []
       }
@@ -243,8 +269,8 @@
             "type": "prometheus",
             "uid": "$datasource"
           },
-          "expr": "max(atem_preview_input{me=\"0\"})",
-          "legendFormat": "",
+          "expr": "atem_preview_source{me=\"0\"}",
+          "legendFormat": "{{short_name}}",
           "refId": "A",
           "instant": true
         }
@@ -259,22 +285,17 @@
         },
         "colorMode": "background",
         "graphMode": "none",
-        "textMode": "value",
+        "textMode": "name",
         "justifyMode": "center"
       },
       "fieldConfig": {
         "defaults": {
-          "mappings": __SOURCE_MAPPINGS__,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              }
-            ]
-          },
-          "noValue": "No data"
+          "mappings": [],
+          "noValue": "No data",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
         },
         "overrides": []
       }
@@ -322,6 +343,7 @@
       "fieldConfig": {
         "defaults": {
           "mappings": [],
+          "noValue": "No data",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -339,7 +361,6 @@
               }
             ]
           },
-          "noValue": "No data",
           "unit": "s"
         },
         "overrides": []
@@ -353,14 +374,25 @@
         "type": "prometheus",
         "uid": "$datasource"
       },
-      "description": "Current level per channel of the monitored sources, dBFS. -60 is silence.",
+      "description": "Current level per channel of casparcg1 and tx3, dBFS. -60 is silence.",
       "gridPos": {
         "h": 6,
         "w": 8,
         "x": 16,
         "y": 0
       },
-      "targets": __AUDIO_TARGETS_INSTANT__,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "expr": "max by (short_name, channel) (atem_input_audio_level_dbfs{short_name=~\"(?i)__NORMAL__|__WARNING__\"})",
+          "legendFormat": "{{short_name}} {{channel}}",
+          "refId": "A",
+          "instant": true
+        }
+      ],
       "options": {
         "orientation": "horizontal",
         "displayMode": "lcd",
@@ -415,9 +447,9 @@
         "type": "prometheus",
         "uid": "$datasource"
       },
-      "description": "Which input was on program when. Gaps mean atemkontroll was down or disconnected.",
+      "description": "One row per source that has been on program; the bar shows when. Gaps across all rows mean atemkontroll was down or disconnected.",
       "gridPos": {
-        "h": 5,
+        "h": 6,
         "w": 24,
         "x": 0,
         "y": 6
@@ -428,8 +460,8 @@
             "type": "prometheus",
             "uid": "$datasource"
           },
-          "expr": "max(atem_program_input{me=\"0\"})",
-          "legendFormat": "On air",
+          "expr": "max by (short_name) (atem_program_source{me=\"0\"})",
+          "legendFormat": "{{short_name}}",
           "refId": "A"
         },
         {
@@ -437,13 +469,13 @@
             "type": "prometheus",
             "uid": "$datasource"
           },
-          "expr": "max(atem_fade_to_black{me=\"0\"})",
+          "expr": "max(atem_fade_to_black{me=\"0\"}) == 1",
           "legendFormat": "Fade to black",
           "refId": "B"
         }
       ],
       "options": {
-        "showValue": "auto",
+        "showValue": "never",
         "mergeValues": true,
         "rowHeight": 0.8,
         "alignValue": "left",
@@ -456,7 +488,18 @@
       },
       "fieldConfig": {
         "defaults": {
-          "mappings": __SOURCE_MAPPINGS__,
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "On air",
+                  "color": "red",
+                  "index": 0
+                }
+              }
+            }
+          ],
           "color": {
             "mode": "thresholds"
           },
@@ -473,6 +516,52 @@
         "overrides": [
           {
             "matcher": {
+              "id": "byRegexp",
+              "options": "/^(__NORMAL__)$/i"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "1": {
+                        "text": "On air",
+                        "color": "green",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "/^(__WARNING__)$/i"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "1": {
+                        "text": "On air",
+                        "color": "yellow",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
               "id": "byName",
               "options": "Fade to black"
             },
@@ -483,15 +572,10 @@
                   {
                     "type": "value",
                     "options": {
-                      "0": {
-                        "text": "Off",
-                        "color": "transparent",
-                        "index": 0
-                      },
                       "1": {
                         "text": "BLACK",
                         "color": "red",
-                        "index": 1
+                        "index": 0
                       }
                     }
                   }
@@ -510,14 +594,24 @@
         "type": "prometheus",
         "uid": "$datasource"
       },
-      "description": "Level per channel of the monitored sources over time, dBFS. A flat line at -60 while the source is on air is lost audio.",
+      "description": "Level per channel of casparcg1 and tx3 over time, dBFS. A flat line at -60 while the source is on air is lost audio.",
       "gridPos": {
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 11
+        "y": 12
       },
-      "targets": __AUDIO_TARGETS__,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "expr": "max by (short_name, channel) (atem_input_audio_level_dbfs{short_name=~\"(?i)__NORMAL__|__WARNING__\"})",
+          "legendFormat": "{{short_name}} {{channel}}",
+          "refId": "A"
+        }
+      ],
       "fieldConfig": {
         "defaults": {
           "unit": "dB",
@@ -576,7 +670,7 @@
         "h": 8,
         "w": 16,
         "x": 0,
-        "y": 20
+        "y": 21
       },
       "targets": [
         {
@@ -584,8 +678,8 @@
             "type": "prometheus",
             "uid": "$datasource"
           },
-          "expr": "max by (input) (atem_input_audio_level_dbfs)",
-          "legendFormat": "Input {{input}}",
+          "expr": "max by (input, short_name) (atem_input_audio_level_dbfs)",
+          "legendFormat": "{{short_name}} ({{input}})",
           "refId": "A"
         }
       ],
@@ -620,7 +714,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 20
+        "y": 21
       },
       "options": {
         "alertName": "Atem",
@@ -653,7 +747,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 28
+        "y": 29
       },
       "targets": [
         {

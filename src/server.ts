@@ -134,10 +134,28 @@ export function metrics(summary: Summary, now = Date.now()): string {
   gauge('atem_connected', 'Whether the API is connected to the mixer.', [[{}, summary.connected ? 1 : 0]])
   // Prometheus label values must be escaped: backslash, quote, newline.
   const esc = (v: string) => v.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n')
+  // The names set on the mixer, as labels, so dashboards and alerts can
+  // match "TX3" or "CCG1" whichever input number it is plugged into.
+  const byId = new Map(summary.inputs.map((i) => [i.id, i]))
+  const named = (input: number) => ({
+    input,
+    short_name: esc(byId.get(input)?.shortName ?? ''),
+    long_name: esc(byId.get(input)?.longName ?? ''),
+  })
   gauge(
     'atem_input_info',
     'Each input the mixer has, with the names set on the mixer. Always 1.',
-    summary.inputs.map((i) => [{ input: i.id, short_name: esc(i.shortName), long_name: esc(i.longName) }, 1]),
+    summary.inputs.map((i) => [named(i.id), 1]),
+  )
+  gauge(
+    'atem_program_source',
+    'The input on program, per M/E, by name. Always 1; the labels say which.',
+    summary.mixEffects.map((m) => [{ me: m.index, ...named(m.program) }, 1]),
+  )
+  gauge(
+    'atem_preview_source',
+    'The input on preview, per M/E, by name. Always 1.',
+    summary.mixEffects.map((m) => [{ me: m.index, ...named(m.preview) }, 1]),
   )
   gauge('atem_program_input', 'Input on program, per M/E.', summary.mixEffects.map((m) => [{ me: m.index }, m.program]))
   gauge('atem_preview_input', 'Input on preview, per M/E.', summary.mixEffects.map((m) => [{ me: m.index }, m.preview]))
@@ -160,8 +178,8 @@ export function metrics(summary: Summary, now = Date.now()): string {
       'atem_input_audio_level_dbfs',
       'Audio level per input and channel, dBFS (-60 is the floor).',
       audio.inputs.flatMap((i) => [
-        [{ input: i.input, channel: 'left' }, i.leftDbfs],
-        [{ input: i.input, channel: 'right' }, i.rightDbfs],
+        [{ ...named(i.input), channel: 'left' }, i.leftDbfs],
+        [{ ...named(i.input), channel: 'right' }, i.rightDbfs],
       ]),
     )
     // The level of whatever is on program (M/E 0), so an alert can say
@@ -170,7 +188,7 @@ export function metrics(summary: Summary, now = Date.now()): string {
     const onAir = audio.inputs.find((i) => i.input === program)
     if (onAir) {
       gauge('atem_program_audio_level_dbfs', 'Audio level of the input on program (M/E 0), loudest channel, dBFS.', [
-        [{ input: onAir.input }, Math.max(onAir.leftDbfs, onAir.rightDbfs)],
+        [named(onAir.input), Math.max(onAir.leftDbfs, onAir.rightDbfs)],
       ])
     }
     if (audio.master) {
