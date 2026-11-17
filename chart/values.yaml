@@ -21,14 +21,22 @@ service:
   type: ClusterIP
   port: 80
 
-# Off by default: this is an internal API. Callers in the cluster use the
-# Service.
+# Off by default. Callers in the cluster use the Service; hosts outside
+# it (caspar1's audio watchdog) need an ingress on the internal class,
+# e.g. className: internal, hostname: atemkontroll.intern.frikanalen.tv.
 ingress:
   enabled: false
   className: traefik
   hostname: ""
   path: /
   certResolver: ""
+
+# Scrape /metrics (connection, program/preview, audio levels per input).
+serviceMonitor:
+  enabled: false
+  interval: 15s
+  # Extra labels, if Prometheus selects ServiceMonitors by label.
+  labels: {}
 
 # Only needed if the mixer is reachable from some nodes and not others.
 nodeSelector: {}

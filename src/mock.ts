@@ -1,12 +1,22 @@
+import { AudioMeter, FLOOR_DBFS, type ChannelLevels } from './levels.js'
 import { HttpError, type Mixer } from './server.js'
 import type { Summary } from './summary.js'
+
+// Inputs the mock sends audio levels for, like a mixer with four sources
+// that have sound.
+const AUDIO_INPUTS = [1, 2, 3, 4]
 
 // A pretend ATEM 1 M/E for staging and local development, so the API can
 // be exercised without the studio's mixer. Set ATEM_ADDRESS=mock.
 export class MockMixer implements Mixer {
+  readonly meter = new AudioMeter()
+  private readonly silent = new Set<number>()
+  private readonly timer: NodeJS.Timeout
   private readonly listeners = new Set<(summary: Summary) => void>()
-  private readonly state: Summary = {
+  private readonly state: Omit<Summary, 'audio'> = {
     connected: true,
+    connectedSince: new Date().toISOString(),
+    stateUpdatedAt: new Date().toISOString(),
     model: 'Mock ATEM 1 M/E',
     inputs: [
       { id: 0, shortName: 'BLK', longName: 'Black' },
@@ -21,8 +31,36 @@ export class MockMixer implements Mixer {
     macros: [{ index: 0, name: 'Mock macro' }],
   }
 
-  summary() {
-    return structuredClone(this.state)
+  // Levels ten times a second, wandering around -18 dBFS, or the floor
+  // for an input set silent with setSilent.
+  constructor() {
+    this.timer = setInterval(() => this.sendLevels(), 100)
+    this.timer.unref()
+  }
+
+  stop() {
+    clearInterval(this.timer)
+  }
+
+  sendLevels() {
+    const level = (input: number): ChannelLevels => {
+      if (this.silent.has(input)) {
+        return { leftDbfs: FLOOR_DBFS, rightDbfs: FLOOR_DBFS, leftPeakDbfs: FLOOR_DBFS, rightPeakDbfs: FLOOR_DBFS }
+      }
+      const db = () => Math.round((-18 + (Math.random() - 0.5) * 6) * 10) / 10
+      return { leftDbfs: db(), rightDbfs: db(), leftPeakDbfs: -12, rightPeakDbfs: -12 }
+    }
+    this.meter.update('classic', new Map(AUDIO_INPUTS.map((input) => [input, level(input)])), level(0))
+  }
+
+  setSilent(input: number, silent: boolean) {
+    this.source(input)
+    if (silent) this.silent.add(input)
+    else this.silent.delete(input)
+  }
+
+  summary(): Summary {
+    return { ...structuredClone(this.state), audio: this.meter.levels() }
   }
 
   onChange(listener: (summary: Summary) => void) {
@@ -31,6 +69,7 @@ export class MockMixer implements Mixer {
   }
 
   private changed() {
+    this.state.stateUpdatedAt = new Date().toISOString()
     const summary = this.summary()
     for (const listener of this.listeners) listener(summary)
   }
