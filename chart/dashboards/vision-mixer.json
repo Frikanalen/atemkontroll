@@ -23,7 +23,7 @@
       "id": 1,
       "type": "stat",
       "title": "Source on air",
-      "description": "The input on program, by the name set on the mixer. Green is the normal source (casparcg1), yellow the fallback (tx3), red anything else.",
+      "description": "The input on program, by the name set on the mixer. Green is the normal source (caspar1), yellow the fallback (tx3), red anything else.",
       "datasource": {
         "type": "prometheus",
         "uid": "$datasource"
@@ -374,7 +374,7 @@
         "type": "prometheus",
         "uid": "$datasource"
       },
-      "description": "Current level per channel of casparcg1 and tx3, dBFS. -60 is silence.",
+      "description": "Current level per channel of the normal and fallback sources, dBFS. -60 is silence.",
       "gridPos": {
         "h": 6,
         "w": 8,
@@ -594,7 +594,7 @@
         "type": "prometheus",
         "uid": "$datasource"
       },
-      "description": "Level per channel of casparcg1 and tx3 over time, dBFS. A flat line at -60 while the source is on air is lost audio.",
+      "description": "Level per channel of the normal and fallback sources over time, dBFS. A flat line at -60 while the source is on air is lost audio.",
       "gridPos": {
         "h": 9,
         "w": 24,

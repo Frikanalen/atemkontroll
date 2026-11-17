@@ -128,7 +128,7 @@ else), which source was on air when, current and historical audio for
 casparcg1 and tx3, all inputs' audio, and the mixer alerts.
 
 Both match inputs by the short name set on the mixer, not by number:
-`sources.normal` (casparcg1) and `sources.warning` (tx3) are
+`sources.normal` (default `vm1`, caspar1 on the studio mixer) and `sources.warning` (default `tx3`) are
 case-insensitive regexes. Metrics about an input carry `input`,
 `short_name` and `long_name` labels. The dashboard JSON is
 `chart/dashboards/vision-mixer.json`.

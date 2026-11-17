@@ -44,9 +44,9 @@ serviceMonitor:
 # plain names and |, no backslashes. Check the names with the
 # atem_input_info metric or GET /state.
 sources:
-  # Normally on air.
-  normal: "ccg1|casparcg1|caspar1"
-  # The fallback: on air is acceptable but worth a look.
+  # Normally on air. On the studio mixer, input 1 "VM1" is caspar1.
+  normal: "vm1"
+  # The fallback: on air is acceptable but worth a look. Input 3 "TX3".
   warning: "tx3"
 
 # Alerts (needs serviceMonitor.enabled). Routed by Alertmanager like the
