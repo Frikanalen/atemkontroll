@@ -31,3 +31,27 @@ jobs:
       - run: scripts/check-commit-title.sh "$TITLE"
         env:
           TITLE: ${{ github.event.pull_request.title }}
+
+  chart:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - run: helm lint chart --set atemAddress=mock
+      # Render every optional part, so a template error fails here and not
+      # in Argo.
+      - run: >-
+          helm template t chart
+          --set atemAddress=mock
+          --set ingress.enabled=true --set ingress.hostname=example.test
+          --set serviceMonitor.enabled=true
+          --set prometheusRule.enabled=true
+          --set sources.warning='tx3|tx4'
+          --set grafanaDashboard.enabled=true
+          --set tokenSecret=atemkontroll
+      # The dashboard ConfigMap must hold valid JSON after the mappings are
+      # filled in.
+      - run: >-
+          helm template t chart --set atemAddress=mock --set grafanaDashboard.enabled=true
+          --show-only templates/grafana-dashboard.yaml
+          | yq '.data["vision-mixer.json"]' | jq -e '.panels | length > 0'

@@ -29,7 +29,8 @@ arrives, so the state in a command's answer can be a moment behind. Use
 | Method | Path                | Body                       | Does                         |
 | ------ | ------------------- | -------------------------- | ---------------------------- |
 | GET    | `/state`            |                            | Current state                |
-| GET    | `/events`           |                            | State as server-sent events, on every change |
+| GET    | `/events`           |                            | State as server-sent events, on every change. Add `?levels=1` to also get `levels` events (~10/s) |
+| GET    | `/levels`           |                            | Current audio levels         |
 | POST   | `/program`          | `{"input": 1}`             | Put a source on program      |
 | POST   | `/preview`          | `{"input": 2}`             | Put a source on preview      |
 | POST   | `/cut`              |                            | Cut                          |
@@ -42,6 +43,10 @@ arrives, so the state in a command's answer can be a moment behind. Use
 | POST   | `/macros/stop`      |                            | Stop the running macro       |
 | GET    | `/healthz`          |                            | The process is up            |
 | GET    | `/readyz`           |                            | 200 when connected to the mixer, else 503 |
+| GET    | `/metrics`          |                            | Prometheus metrics           |
+| POST   | `/mock/silence/{n}` | `{"silent": true}`         | Mock only: silence input n's audio |
+
+`/healthz`, `/readyz` and `/metrics` never need the token.
 
 Status codes: `400` for a bad body or a source, DSK, aux or macro the mixer
 does not have; `401` for a missing token; `503` while the mixer is
@@ -67,16 +72,66 @@ State looks like:
   ],
   "downstreamKeyers": [{ "index": 0, "onAir": false, "tie": false, "inTransition": false }],
   "auxes": [{ "index": 0, "source": 10010 }],
-  "macros": [{ "index": 0, "name": "Opening" }]
+  "macros": [{ "index": 0, "name": "Opening" }],
+  "connectedSince": "2026-11-17T10:00:00.000Z",
+  "stateUpdatedAt": "2026-11-17T10:41:12.345Z",
+  "audio": {
+    "system": "classic",
+    "updatedAt": "2026-11-17T10:42:00.100Z",
+    "master": { "leftDbfs": -18.2, "rightDbfs": -18.5, "leftPeakDbfs": -9, "rightPeakDbfs": -9.4 },
+    "inputs": [
+      { "input": 1, "leftDbfs": -18.2, "rightDbfs": -18.5, "leftPeakDbfs": -9, "rightPeakDbfs": -9.4 }
+    ]
+  }
 }
 ```
+
+`stateUpdatedAt` is the last change the mixer reported, so it goes stale
+whenever nobody touches the mixer. `audio.updatedAt` refreshes about ten
+times a second while connected, so use it to tell live data from stale.
+Levels are dBFS with a floor of -60 (silence). `audio.inputs[].input` is
+the ATEM's audio source id, which for video inputs is the input number.
+Levels are cleared when the connection drops.
+
+### Audio levels
+
+Fairlight models send levels that atem-connection decodes. Classic-audio
+models, the older 1 M/E ones, send `AMLv`, which atem-connection does not
+decode; `src/levels.ts` decodes it, following pyatem's notes on the format,
+and `src/atem.ts` registers it with the library's parser. That reaches into
+atem-connection's internals, so its version is pinned, and the service
+refuses to start if the parser has moved.
+
+### Metrics
+
+`atem_connected`, `atem_input_info{input,short_name,long_name}` (names as set on the mixer),
+`atem_program_source{me,input,short_name,long_name}` and `atem_preview_source` (always 1), `atem_program_input{me}`, `atem_preview_input{me}`,
+`atem_in_transition{me}`, `atem_fade_to_black{me}`, and once levels
+arrive `atem_audio_levels_age_seconds`,
+`atem_input_audio_level_dbfs{input,channel}`,
+`atem_program_audio_level_dbfs{input}` (the input on program) and
+`atem_master_audio_level_dbfs{channel}`.
 
 ## Deploying
 
 The image is `ghcr.io/frikanalen/atemkontroll`, and `chart/` is its Helm
 chart. Set `atemAddress`, and `tokenSecret` to a Secret holding
 `API_TOKEN`. There is no ingress by default; callers inside the cluster use
-the Service.
+the Service, and hosts outside it use an ingress on the internal class.
+`serviceMonitor.enabled` makes Prometheus scrape `/metrics`, and
+`prometheusRule.enabled` adds alerts: mixer unreachable, program on
+something other than casparcg1 or tx3, program on tx3 for long, fade to
+black, the input on air silent, and audio levels gone stale.
+`grafanaDashboard.enabled` adds the "Frikanalen / Vision Mixer" dashboard:
+the source on air (green for casparcg1, yellow for tx3, red for anything
+else), which source was on air when, current and historical audio for
+casparcg1 and tx3, all inputs' audio, and the mixer alerts.
+
+Both match inputs by the short name set on the mixer, not by number:
+`sources.normal` (casparcg1) and `sources.warning` (tx3) are
+case-insensitive regexes. Metrics about an input carry `input`,
+`short_name` and `long_name` labels. The dashboard JSON is
+`chart/dashboards/vision-mixer.json`.
 
 ## Releases
 

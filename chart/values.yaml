@@ -21,14 +21,51 @@ service:
   type: ClusterIP
   port: 80
 
-# Off by default: this is an internal API. Callers in the cluster use the
-# Service.
+# Off by default. Callers in the cluster use the Service; hosts outside
+# it (caspar1's audio watchdog) need an ingress on the internal class,
+# e.g. className: internal, hostname: atemkontroll.intern.frikanalen.tv.
 ingress:
   enabled: false
   className: traefik
   hostname: ""
   path: /
   certResolver: ""
+
+# Scrape /metrics (connection, program/preview, audio levels per input).
+serviceMonitor:
+  enabled: false
+  interval: 15s
+  # Extra labels, if Prometheus selects ServiceMonitors by label.
+  labels: {}
+
+# Which inputs are which, by the short name set on the mixer (ATEM
+# Software Control), not by input number, so moving a cable changes
+# nothing here. Case-insensitive regexes over the whole name; keep them to
+# plain names and |, no backslashes. Check the names with the
+# atem_input_info metric or GET /state.
+sources:
+  # Normally on air.
+  normal: "ccg1|casparcg1|caspar1"
+  # The fallback: on air is acceptable but worth a look.
+  warning: "tx3"
+
+# Alerts (needs serviceMonitor.enabled). Routed by Alertmanager like the
+# other alerts.
+prometheusRule:
+  enabled: false
+  # Anything other than the normal or fallback source on program.
+  unexpectedSourceFor: 2m
+  # The fallback source on program.
+  fallbackSourceFor: 10m
+  fadeToBlackFor: 30s
+  # The input on program counts as silent below this level.
+  silenceDbfs: -50
+  silenceFor: 2m
+
+# Grafana dashboard "Frikanalen / Vision Mixer". Needs serviceMonitor.enabled.
+# Colours and the audio panels follow `sources` above.
+grafanaDashboard:
+  enabled: false
 
 # Only needed if the mixer is reachable from some nodes and not others.
 nodeSelector: {}

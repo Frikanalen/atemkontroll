@@ -1,0 +1,78 @@
+{{- if .Values.prometheusRule.enabled }}
+{{- $r := .Values.prometheusRule }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "atemkontroll.fullname" . }}
+  labels:
+    {{- include "atemkontroll.labels" . | nindent 4 }}
+    # kube-prometheus-stack only loads rules carrying its release label.
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: atemkontroll
+      rules:
+        - alert: AtemkontrollDown
+          expr: up{service="{{ include "atemkontroll.fullname" . }}"} == 0
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: atemkontroll is unreachable
+            description: Prometheus cannot scrape atemkontroll, so the vision mixer alerts below are blind.
+
+        - alert: AtemDisconnected
+          expr: atem_connected == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: The vision mixer is unreachable
+            description: atemkontroll has had no connection to the ATEM for two minutes. Check the mixer's power and network.
+
+        - alert: AtemUnexpectedProgramSource
+          # Neither the normal source nor the fallback is on program.
+          expr: atem_program_source{me="0", short_name!~"(?i){{ .Values.sources.normal }}|{{ .Values.sources.warning }}"} == 1
+          for: {{ $r.unexpectedSourceFor }}
+          labels:
+            severity: warning
+          annotations:
+            summary: "Vision mixer program is on {{ "{{ $labels.short_name }}" }} (input {{ "{{ $labels.input }}" }})"
+            description: "Program has been on {{ "{{ $labels.short_name }}" }} for {{ $r.unexpectedSourceFor }}, not casparcg1 or tx3. Fine during a live studio production; otherwise switch back."
+
+        - alert: AtemOnFallbackSource
+          expr: atem_program_source{me="0", short_name=~"(?i){{ .Values.sources.warning }}"} == 1
+          for: {{ $r.fallbackSourceFor }}
+          labels:
+            severity: warning
+          annotations:
+            summary: "Vision mixer program is on the fallback, {{ "{{ $labels.short_name }}" }}"
+            description: "Program has been on {{ "{{ $labels.short_name }}" }} for {{ $r.fallbackSourceFor }} instead of casparcg1."
+
+        - alert: AtemFadeToBlack
+          expr: atem_fade_to_black{me="0"} == 1
+          for: {{ $r.fadeToBlackFor }}
+          labels:
+            severity: critical
+          annotations:
+            summary: The vision mixer is faded to black
+            description: Fade to black has been on for {{ $r.fadeToBlackFor }}, so the channel is sending black.
+
+        - alert: AtemProgramSilent
+          expr: atem_program_audio_level_dbfs < {{ $r.silenceDbfs }}
+          for: {{ $r.silenceFor }}
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ "{{ $labels.short_name }}" }} is on air with no audio"
+            description: "{{ "{{ $labels.short_name }}" }} (input {{ "{{ $labels.input }}" }}) is on program and has stayed under {{ $r.silenceDbfs }} dBFS for {{ $r.silenceFor }}."
+
+        - alert: AtemAudioLevelsStale
+          expr: atem_connected == 1 and on() (atem_audio_levels_age_seconds > 10 or absent(atem_audio_levels_age_seconds))
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: The vision mixer has stopped sending audio levels
+            description: atemkontroll is connected but has had no audio levels for over 10 seconds, so AtemProgramSilent and caspar1's audio watchdog are blind.
+{{- end }}

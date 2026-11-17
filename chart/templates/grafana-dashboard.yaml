@@ -1,0 +1,16 @@
+{{- if .Values.grafanaDashboard.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "atemkontroll.fullname" . }}-grafana-dashboard
+  labels:
+    {{- include "atemkontroll.labels" . | nindent 4 }}
+    # Grafana's sidecar loads ConfigMaps with this label from any namespace.
+    grafana_dashboard: "1"
+data:
+  vision-mixer.json: |-
+    {{- .Files.Get "dashboards/vision-mixer.json"
+        | replace "__NORMAL__" .Values.sources.normal
+        | replace "__WARNING__" .Values.sources.warning
+        | nindent 4 }}
+{{- end }}

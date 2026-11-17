@@ -1,13 +1,18 @@
 import type { AddressInfo } from 'node:net'
 import { afterEach, describe, expect, it } from 'vitest'
-import { createApp, HttpError, type Mixer } from './server.js'
+import { AudioMeter } from './levels.js'
+import { createApp, HttpError, metrics, type Mixer } from './server.js'
 import type { Summary } from './summary.js'
 
 function fakeMixer(connected = true) {
   const calls: unknown[][] = []
   const listeners = new Set<(s: Summary) => void>()
+  const meter = new AudioMeter()
   const state: Summary = {
     connected,
+    connectedSince: null,
+    stateUpdatedAt: null,
+    audio: { system: null, updatedAt: null, master: null, inputs: [] },
     inputs: [{ id: 1, shortName: 'CAM1', longName: 'Camera 1' }],
     mixEffects: [{ index: 0, program: 1, preview: 2, inTransition: false, fadeToBlack: { fullyBlack: false, inTransition: false } }],
     downstreamKeyers: [],
@@ -21,7 +26,8 @@ function fakeMixer(connected = true) {
       calls.push([name, ...args])
     }
   const mixer: Mixer = {
-    summary: () => state,
+    meter,
+    summary: () => ({ ...state, audio: meter.levels() }),
     onChange: (l) => {
       listeners.add(l)
       return () => void listeners.delete(l)
@@ -130,5 +136,50 @@ describe('vision mixer API', () => {
     const second = new TextDecoder().decode((await reader.read()).value)
     expect(second).toMatch(/^data: \{"connected":false/)
     await reader.cancel()
+  })
+
+  it('streams levels only when asked', async () => {
+    const { mixer } = fakeMixer()
+    const res = await fetch(`${await start(mixer)}/events?levels=1`)
+    const reader = res.body!.getReader()
+    await reader.read() // the state
+    mixer.meter.update('classic', new Map([[1, { leftDbfs: -20, rightDbfs: -21, leftPeakDbfs: -10, rightPeakDbfs: -10 }]]))
+    const levels = new TextDecoder().decode((await reader.read()).value)
+    expect(levels).toMatch(/^event: levels\ndata: \{"system":"classic"/)
+    expect(levels).toContain('"input":1,"leftDbfs":-20')
+    await reader.cancel()
+  })
+
+  it('serves levels and metrics without a token', async () => {
+    const { mixer } = fakeMixer()
+    mixer.meter.update('classic', new Map([[1, { leftDbfs: -60, rightDbfs: -60, leftPeakDbfs: -60, rightPeakDbfs: -60 }]]))
+    const base = await start(mixer, 's3cret')
+    const text = await (await fetch(`${base}/metrics`)).text()
+    expect(text).toContain('atem_input_audio_level_dbfs{input="1",short_name="CAM1",long_name="Camera 1",channel="left"} -60')
+    expect(text).toContain('atem_program_input{me="0"} 1')
+    expect(text).toContain('atem_input_info{input="1",short_name="CAM1",long_name="Camera 1"} 1')
+    expect(text).toContain('atem_program_audio_level_dbfs{input="1",short_name="CAM1",long_name="Camera 1"} -60')
+    expect(text).toContain('atem_program_source{me="0",input="1",short_name="CAM1",long_name="Camera 1"} 1')
+    expect((await fetch(`${base}/levels`)).status).toBe(401)
+  })
+
+  it('only lets the mock be silenced', async () => {
+    const { mixer } = fakeMixer()
+    expect((await post(`${await start(mixer)}/mock/silence/1`, { silent: true })).status).toBe(404)
+  })
+})
+
+describe('metrics', () => {
+  it('leaves out audio until levels have arrived', () => {
+    const { mixer } = fakeMixer()
+    const text = metrics(mixer.summary())
+    expect(text).toContain('atem_connected 1')
+    expect(text).not.toContain('audio')
+  })
+
+  it('reports how old the levels are', () => {
+    const { mixer } = fakeMixer()
+    mixer.meter.update('classic', new Map(), undefined, new Date(1_000_000))
+    expect(metrics(mixer.summary(), 1_002_500)).toContain('atem_audio_levels_age_seconds 2.5')
   })
 })

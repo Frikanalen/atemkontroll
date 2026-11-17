@@ -1,10 +1,16 @@
 import type { AtemState } from 'atem-connection'
+import type { AudioLevels } from './levels.js'
 
 // The part of the ATEM's state that callers of this API care about. The
 // library's own AtemState is large and changes shape between versions, so
 // the API promises this smaller shape instead.
 export interface Summary {
   connected: boolean
+  // ISO 8601. connectedSince is null while disconnected. stateUpdatedAt is
+  // the last change the mixer reported, so it is old whenever nobody
+  // touches the mixer; use audio.updatedAt to tell whether data is live.
+  connectedSince: string | null
+  stateUpdatedAt: string | null
   model?: string
   inputs: Array<{ id: number; shortName: string; longName: string }>
   mixEffects: Array<{
@@ -17,17 +23,33 @@ export interface Summary {
   downstreamKeyers: Array<{ index: number; onAir: boolean; tie: boolean; inTransition: boolean }>
   auxes: Array<{ index: number; source: number }>
   macros: Array<{ index: number; name: string }>
+  audio: AudioLevels
 }
 
-export function summarize(state: AtemState | undefined, connected: boolean): Summary {
+export interface Meta {
+  connected: boolean
+  connectedSince?: Date | null
+  stateUpdatedAt?: Date | null
+  audio?: AudioLevels
+}
+
+const NO_AUDIO: AudioLevels = { system: null, updatedAt: null, master: null, inputs: [] }
+
+export function summarize(state: AtemState | undefined, meta: Meta): Summary {
+  const base = {
+    connected: meta.connected,
+    connectedSince: meta.connectedSince?.toISOString() ?? null,
+    stateUpdatedAt: meta.stateUpdatedAt?.toISOString() ?? null,
+    audio: meta.audio ?? NO_AUDIO,
+  }
   if (!state) {
-    return { connected, inputs: [], mixEffects: [], downstreamKeyers: [], auxes: [], macros: [] }
+    return { ...base, inputs: [], mixEffects: [], downstreamKeyers: [], auxes: [], macros: [] }
   }
   const present = <T>(list: Array<T | undefined>) =>
     list.flatMap((item, index) => (item === undefined ? [] : [{ item, index }]))
 
   return {
-    connected,
+    ...base,
     model: state.info.productIdentifier,
     inputs: Object.values(state.inputs)
       .filter((input) => input !== undefined)
