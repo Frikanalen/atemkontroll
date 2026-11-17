@@ -157,6 +157,15 @@ export function metrics(summary: Summary, now = Date.now()): string {
         [{ input: i.input, channel: 'right' }, i.rightDbfs],
       ]),
     )
+    // The level of whatever is on program (M/E 0), so an alert can say
+    // "on air but silent" without joining a value to a label in PromQL.
+    const program = summary.mixEffects[0]?.program
+    const onAir = audio.inputs.find((i) => i.input === program)
+    if (onAir) {
+      gauge('atem_program_audio_level_dbfs', 'Audio level of the input on program (M/E 0), loudest channel, dBFS.', [
+        [{ input: onAir.input }, Math.max(onAir.leftDbfs, onAir.rightDbfs)],
+      ])
+    }
     if (audio.master) {
       gauge('atem_master_audio_level_dbfs', 'Master audio level per channel, dBFS.', [
         [{ channel: 'left' }, audio.master.leftDbfs],

@@ -38,6 +38,19 @@ serviceMonitor:
   # Extra labels, if Prometheus selects ServiceMonitors by label.
   labels: {}
 
+# Alerts (needs serviceMonitor.enabled). Routed by Alertmanager like the
+# other alerts.
+prometheusRule:
+  enabled: false
+  # Inputs that are normal on program; anything else warns after
+  # unexpectedProgramFor. Input 1 is caspar1 (playout).
+  expectedProgramInputs: [1]
+  unexpectedProgramFor: 5m
+  fadeToBlackFor: 30s
+  # The input on program counts as silent below this level.
+  silenceDbfs: -50
+  silenceFor: 2m
+
 # Only needed if the mixer is reachable from some nodes and not others.
 nodeSelector: {}
 

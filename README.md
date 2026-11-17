@@ -107,7 +107,8 @@ refuses to start if the parser has moved.
 `atem_connected`, `atem_program_input{me}`, `atem_preview_input{me}`,
 `atem_in_transition{me}`, `atem_fade_to_black{me}`, and once levels
 arrive `atem_audio_levels_age_seconds`,
-`atem_input_audio_level_dbfs{input,channel}` and
+`atem_input_audio_level_dbfs{input,channel}`,
+`atem_program_audio_level_dbfs{input}` (the input on program) and
 `atem_master_audio_level_dbfs{channel}`.
 
 ## Deploying
@@ -116,7 +117,10 @@ The image is `ghcr.io/frikanalen/atemkontroll`, and `chart/` is its Helm
 chart. Set `atemAddress`, and `tokenSecret` to a Secret holding
 `API_TOKEN`. There is no ingress by default; callers inside the cluster use
 the Service, and hosts outside it use an ingress on the internal class.
-`serviceMonitor.enabled` makes Prometheus scrape `/metrics`.
+`serviceMonitor.enabled` makes Prometheus scrape `/metrics`, and
+`prometheusRule.enabled` adds alerts: mixer unreachable, program on an
+unexpected input (`prometheusRule.expectedProgramInputs`, default input 1),
+fade to black, the program input silent, and audio levels gone stale.
 
 ## Releases
 
