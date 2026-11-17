@@ -1,0 +1,41 @@
+# One replica: there is one mixer and the API holds one connection to it.
+# A drain moves the pod and the API is gone for the few seconds it takes
+# to start and reconnect, which is fine for a control API.
+replicaCount: 1
+
+image:
+  repository: ghcr.io/frikanalen/atemkontroll
+  tag: ""
+  pullPolicy: Always
+
+# The ATEM's address, reachable from the pod network (on prod the kube
+# nodes have an address in its subnet, infra roles/mixer_subnet_address).
+# "mock" runs a pretend mixer, which is what staging uses.
+atemAddress: ""
+
+# Name of an existing Secret with key API_TOKEN. When set, every request
+# except /healthz and /readyz needs "Authorization: Bearer <token>".
+tokenSecret: ""
+
+service:
+  type: ClusterIP
+  port: 80
+
+# Off by default: this is an internal API. Callers in the cluster use the
+# Service.
+ingress:
+  enabled: false
+  className: traefik
+  hostname: ""
+  path: /
+  certResolver: ""
+
+# Only needed if the mixer is reachable from some nodes and not others.
+nodeSelector: {}
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 64Mi
+  limits:
+    memory: 256Mi

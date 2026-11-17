@@ -1,0 +1,5 @@
+apiVersion: v2
+name: atemkontroll
+description: HTTP API for the studio's ATEM vision mixer
+type: application
+version: 0.1.0

@@ -1,0 +1,98 @@
+import { Atem } from 'atem-connection'
+import { HttpError, type Mixer } from './server.js'
+import { summarize, type Summary } from './summary.js'
+
+// Backs the Mixer interface with NRK's atem-connection. The library keeps
+// the connection alive and reconnects by itself, so this only tracks
+// whether we are connected and fans state changes out to listeners.
+export class AtemMixer implements Mixer {
+  private readonly atem = new Atem()
+  private connected = false
+  private readonly listeners = new Set<(summary: Summary) => void>()
+
+  constructor(private readonly address: string) {
+    this.atem.on('connected', () => {
+      this.connected = true
+      console.log(`connected to ${address} (${this.atem.state?.info.productIdentifier ?? 'unknown model'})`)
+      this.emit()
+    })
+    this.atem.on('disconnected', () => {
+      this.connected = false
+      console.log(`lost connection to ${address}, retrying`)
+      this.emit()
+    })
+    this.atem.on('stateChanged', () => this.emit())
+    this.atem.on('error', (message) => console.error(`atem: ${message}`))
+  }
+
+  connect() {
+    return this.atem.connect(this.address)
+  }
+
+  disconnect() {
+    return this.atem.disconnect()
+  }
+
+  summary() {
+    return summarize(this.atem.state, this.connected)
+  }
+
+  onChange(listener: (summary: Summary) => void) {
+    this.listeners.add(listener)
+    return () => void this.listeners.delete(listener)
+  }
+
+  private emit() {
+    if (this.listeners.size === 0) return
+    const summary = this.summary()
+    for (const listener of this.listeners) listener(summary)
+  }
+
+  // The ATEM silently ignores a source it does not have, so check first.
+  private source(input: number) {
+    if (!this.atem.state?.inputs[input]) throw new HttpError(400, `the mixer has no source ${input}`)
+    return input
+  }
+
+  private me(me: number) {
+    if (!this.atem.state?.video.mixEffects[me]) throw new HttpError(400, `the mixer has no M/E ${me}`)
+    return me
+  }
+
+  program(input: number, me: number) {
+    return this.atem.changeProgramInput(this.source(input), this.me(me))
+  }
+  preview(input: number, me: number) {
+    return this.atem.changePreviewInput(this.source(input), this.me(me))
+  }
+  cut(me: number) {
+    return this.atem.cut(this.me(me))
+  }
+  auto(me: number) {
+    return this.atem.autoTransition(this.me(me))
+  }
+  fadeToBlack(me: number) {
+    return this.atem.fadeToBlack(this.me(me))
+  }
+  private dsk(key: number) {
+    if (!this.atem.state?.video.downstreamKeyers[key]) throw new HttpError(400, `the mixer has no DSK ${key}`)
+    return key
+  }
+  downstreamKey(key: number, onAir: boolean) {
+    return this.atem.setDownstreamKeyOnAir(onAir, this.dsk(key))
+  }
+  downstreamKeyAuto(key: number) {
+    return this.atem.autoDownstreamKey(this.dsk(key))
+  }
+  aux(bus: number, input: number) {
+    if (this.atem.state?.video.auxilliaries[bus] === undefined) throw new HttpError(400, `the mixer has no aux ${bus}`)
+    return this.atem.setAuxSource(this.source(input), bus)
+  }
+  macroRun(index: number) {
+    if (!this.atem.state?.macro.macroProperties[index]?.isUsed) throw new HttpError(400, `macro ${index} is empty`)
+    return this.atem.macroRun(index)
+  }
+  macroStop() {
+    return this.atem.macroStop()
+  }
+}

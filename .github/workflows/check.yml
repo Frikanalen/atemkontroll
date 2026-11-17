@@ -1,0 +1,33 @@
+name: Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run check
+      - run: npm run build
+
+  # Releases and the changelog are written from commit messages, so they
+  # follow Conventional Commits: "feat: ...", "fix(weather): ...".
+  # A pull request is squashed into one commit named after its title, so
+  # the title is what has to be right.
+  title:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: scripts/check-commit-title.sh "$TITLE"
+        env:
+          TITLE: ${{ github.event.pull_request.title }}

@@ -1,28 +1,18 @@
-FROM node:18-bookworm AS deps
+FROM node:22-alpine AS builder
 
 WORKDIR /app
-
-COPY yarn.lock package.json tsconfig.json ./
-RUN yarn install --quiet --dev
-
-
-FROM node:18-bookworm AS builder
-
-WORKDIR /app
-
-COPY --from=deps /app/node_modules node_modules
+COPY package.json package-lock.json ./
+RUN npm ci
 COPY . .
+RUN npm run check && npm test && npm run build && npm prune --omit=dev
 
-RUN yarn build
-
-FROM node:18-bookworm
+FROM node:22-alpine
 
 WORKDIR /app
-
-COPY --from=deps /app/node_modules node_modules
-COPY --from=builder /app/dist dist
-COPY yarn.lock package.json tsconfig.json ./
-
-EXPOSE 3000
-
-CMD ["yarn", "start"]
+ENV NODE_ENV=production
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+USER node
+EXPOSE 8080
+CMD ["node", "dist/main.js"]
