@@ -43,7 +43,7 @@ serviceMonitor:
 prometheusRule:
   enabled: false
   # Inputs that are normal on program; anything else warns after
-  # unexpectedProgramFor. Input 1 is caspar1 (playout).
+  # unexpectedProgramFor. Input 1 is casparcg1 (playout).
   expectedProgramInputs: [1]
   unexpectedProgramFor: 5m
   fadeToBlackFor: 30s
@@ -55,13 +55,16 @@ prometheusRule:
 # input, alerts. Needs serviceMonitor.enabled.
 grafanaDashboard:
   enabled: false
-  # Names for the ATEM's input numbers on the dashboard. Inputs listed in
-  # prometheusRule.expectedProgramInputs show green on program.
-  inputNames:
-    "0": Black
-    "1": caspar1 (playout)
-    "10": Multiviewer
-    "1000": Color bars
+  # The ATEM's inputs by number. status sets the colour when the input is
+  # on program: normal = green, warning = yellow, anything else (and any
+  # input not listed) = red. audio: true puts the input's levels in the
+  # "Audio now" and "Audio history" panels.
+  sources:
+    "1": { name: casparcg1, status: normal, audio: true }
+    "2": { name: tx3, status: warning, audio: true }
+    "0": { name: Black }
+    "10": { name: Multiviewer }
+    "1000": { name: Color bars }
 
 # Only needed if the mixer is reachable from some nodes and not others.
 nodeSelector: {}

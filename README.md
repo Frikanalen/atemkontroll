@@ -122,9 +122,10 @@ the Service, and hosts outside it use an ingress on the internal class.
 unexpected input (`prometheusRule.expectedProgramInputs`, default input 1),
 fade to black, the program input silent, and audio levels gone stale.
 `grafanaDashboard.enabled` adds the "Frikanalen / Vision Mixer" dashboard:
-what is on air now and over time, audio per input (caspar1 highlighted),
-program vs master audio, and the mixer alerts. Name the inputs with
-`grafanaDashboard.inputNames`. The dashboard JSON is
+the source on air (green for casparcg1, yellow for tx3, red for anything
+else), which source was on air when, current and historical audio for
+casparcg1 and tx3, all inputs' audio, and the mixer alerts. Inputs, their
+names, colours and which get audio panels are `grafanaDashboard.sources`. The dashboard JSON is
 `chart/dashboards/vision-mixer.json`.
 
 ## Releases
