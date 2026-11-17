@@ -121,6 +121,11 @@ the Service, and hosts outside it use an ingress on the internal class.
 `prometheusRule.enabled` adds alerts: mixer unreachable, program on an
 unexpected input (`prometheusRule.expectedProgramInputs`, default input 1),
 fade to black, the program input silent, and audio levels gone stale.
+`grafanaDashboard.enabled` adds the "Frikanalen / Vision Mixer" dashboard:
+what is on air now and over time, audio per input (caspar1 highlighted),
+program vs master audio, and the mixer alerts. Name the inputs with
+`grafanaDashboard.inputNames`. The dashboard JSON is
+`chart/dashboards/vision-mixer.json`.
 
 ## Releases
 

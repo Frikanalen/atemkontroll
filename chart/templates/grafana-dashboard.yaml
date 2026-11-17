@@ -1,0 +1,24 @@
+{{- if .Values.grafanaDashboard.enabled }}
+{{- /* Value mappings from input number to name, green for the inputs
+       expected on air, so the program panel goes orange on anything else. */}}
+{{- $expected := list }}
+{{- range .Values.prometheusRule.expectedProgramInputs }}{{ $expected = append $expected (toString .) }}{{ end }}
+{{- $options := dict }}
+{{- $i := 0 }}
+{{- range $id, $name := .Values.grafanaDashboard.inputNames }}
+{{- $_ := set $options $id (dict "text" $name "color" (ternary "green" "orange" (has $id $expected)) "index" $i) }}
+{{- $i = add1 $i }}
+{{- end }}
+{{- $mappings := list (dict "type" "value" "options" $options) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "atemkontroll.fullname" . }}-grafana-dashboard
+  labels:
+    {{- include "atemkontroll.labels" . | nindent 4 }}
+    # Grafana's sidecar loads ConfigMaps with this label from any namespace.
+    grafana_dashboard: "1"
+data:
+  vision-mixer.json: |-
+    {{- .Files.Get "dashboards/vision-mixer.json" | replace "__INPUT_MAPPINGS__" (toJson $mappings) | nindent 4 }}
+{{- end }}

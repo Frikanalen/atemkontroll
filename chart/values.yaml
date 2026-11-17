@@ -51,6 +51,18 @@ prometheusRule:
   silenceDbfs: -50
   silenceFor: 2m
 
+# Grafana dashboard "Frikanalen / Vision Mixer": what is on air, audio per
+# input, alerts. Needs serviceMonitor.enabled.
+grafanaDashboard:
+  enabled: false
+  # Names for the ATEM's input numbers on the dashboard. Inputs listed in
+  # prometheusRule.expectedProgramInputs show green on program.
+  inputNames:
+    "0": Black
+    "1": caspar1 (playout)
+    "10": Multiviewer
+    "1000": Color bars
+
 # Only needed if the mixer is reachable from some nodes and not others.
 nodeSelector: {}
 
