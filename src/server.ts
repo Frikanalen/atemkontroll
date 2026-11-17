@@ -132,6 +132,13 @@ export function metrics(summary: Summary, now = Date.now()): string {
     }
   }
   gauge('atem_connected', 'Whether the API is connected to the mixer.', [[{}, summary.connected ? 1 : 0]])
+  // Prometheus label values must be escaped: backslash, quote, newline.
+  const esc = (v: string) => v.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n')
+  gauge(
+    'atem_input_info',
+    'Each input the mixer has, with the names set on the mixer. Always 1.',
+    summary.inputs.map((i) => [{ input: i.id, short_name: esc(i.shortName), long_name: esc(i.longName) }, 1]),
+  )
   gauge('atem_program_input', 'Input on program, per M/E.', summary.mixEffects.map((m) => [{ me: m.index }, m.program]))
   gauge('atem_preview_input', 'Input on preview, per M/E.', summary.mixEffects.map((m) => [{ me: m.index }, m.preview]))
   gauge(

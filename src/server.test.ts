@@ -157,6 +157,7 @@ describe('vision mixer API', () => {
     const text = await (await fetch(`${base}/metrics`)).text()
     expect(text).toContain('atem_input_audio_level_dbfs{input="1",channel="left"} -60')
     expect(text).toContain('atem_program_input{me="0"} 1')
+    expect(text).toContain('atem_input_info{input="1",short_name="CAM1",long_name="Camera 1"} 1')
     expect(text).toContain('atem_program_audio_level_dbfs{input="1"} -60')
     expect((await fetch(`${base}/levels`)).status).toBe(401)
   })

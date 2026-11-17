@@ -104,7 +104,7 @@ refuses to start if the parser has moved.
 
 ### Metrics
 
-`atem_connected`, `atem_program_input{me}`, `atem_preview_input{me}`,
+`atem_connected`, `atem_input_info{input,short_name,long_name}` (names as set on the mixer), `atem_program_input{me}`, `atem_preview_input{me}`,
 `atem_in_transition{me}`, `atem_fade_to_black{me}`, and once levels
 arrive `atem_audio_levels_age_seconds`,
 `atem_input_audio_level_dbfs{input,channel}`,
